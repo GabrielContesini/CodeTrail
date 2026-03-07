@@ -67,7 +67,13 @@ jobs:
         run: flutter pub run build_runner build --delete-conflicting-outputs
 
       - name: Analyze
-        run: flutter analyze lib test
+        shell: bash
+        run: |
+          TARGETS=("lib")
+          if [[ -d "test" ]]; then
+            TARGETS+=("test")
+          fi
+          flutter analyze "${TARGETS[@]}"
 
       - name: Build Release APK
         run: >

@@ -63,7 +63,13 @@ jobs:
         run: git diff --exit-code
 
       - name: Analyze
-        run: flutter analyze lib test
+        shell: bash
+        run: |
+          TARGETS=("lib")
+          if [[ -d "test" ]]; then
+            TARGETS+=("test")
+          fi
+          flutter analyze "${TARGETS[@]}"
 
       - name: Run Tests
         if: ${{ hashFiles('test/**/*.dart') != '' }}
