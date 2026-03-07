@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-function Get-AppVersion {
+function Get-AppVersionInfo {
   $versionLine = Get-Content ".\pubspec.yaml" |
     Where-Object { $_ -match '^version:\s*([^\s]+)$' } |
     Select-Object -First 1
@@ -9,59 +9,49 @@ function Get-AppVersion {
     throw "Nao foi possivel encontrar a versao no pubspec.yaml."
   }
 
-  return (($versionLine -split ':\s*', 2)[1] -split '\+')[0]
+  $rawVersion = (($versionLine -split ':\s*', 2)[1]).Trim()
+
+  if ($rawVersion -notmatch '^(?<buildName>\d+\.\d+\.\d+)\+(?<buildNumber>\d+)$') {
+    throw "A versao '$rawVersion' nao esta no formato esperado buildName+buildNumber."
+  }
+
+  return [PSCustomObject]@{
+    BuildName = $Matches.buildName
+    BuildNumber = $Matches.buildNumber
+    FullVersion = "$($Matches.buildName)+$($Matches.buildNumber)"
+  }
 }
 
-function Get-NextArtifactVersion {
+function Get-UniqueArtifactPath {
   param(
-    [string[]]$SearchDirs,
-    [string]$BaseVersion
+    [string]$Directory,
+    [string]$BaseName,
+    [string]$Extension
   )
 
-  $parts = $BaseVersion -split '\.'
-  if ($parts.Count -ne 3) {
-    return $BaseVersion
+  New-Item -ItemType Directory -Path $Directory -Force | Out-Null
+
+  $candidate = Join-Path $Directory "$BaseName.$Extension"
+  $revision = 1
+
+  while (Test-Path $candidate) {
+    $revision += 1
+    $candidate = Join-Path $Directory "$BaseName-r$revision.$Extension"
   }
 
-  $major = [int]$parts[0]
-  $minor = [int]$parts[1]
-  $patch = [int]$parts[2]
-
-  $existingPatches = @(
-    foreach ($dir in $SearchDirs) {
-      if (-not (Test-Path $dir)) {
-        continue
-      }
-
-      Get-ChildItem $dir -Filter "CodeTrail-$major.$minor.*.apk" -File |
-        ForEach-Object {
-          if ($_.BaseName -match "^CodeTrail-$major\.$minor\.(\d+)$") {
-            [int]$Matches[1]
-          }
-        }
-    }
-  ) | Where-Object { $_ -ge $patch }
-
-  if (-not $existingPatches) {
-    return $BaseVersion
-  }
-
-  $maxPatch = ($existingPatches | Measure-Object -Maximum).Maximum
-  return "$major.$minor.$($maxPatch + 1)"
+  return $candidate
 }
 
-$version = Get-AppVersion
+$version = Get-AppVersionInfo
 $artifactDir = ".\artifacts\debug"
-$legacyOutputDir = ".\build\releases\debug"
-$artifactVersion = Get-NextArtifactVersion -SearchDirs @($artifactDir, $legacyOutputDir) -BaseVersion $version
-$versionedApk = Join-Path $artifactDir "CodeTrail-$artifactVersion.apk"
-$legacyVersionedApk = Join-Path $legacyOutputDir "CodeTrail-$artifactVersion.apk"
+$artifactName = "CodeTrail-$($version.FullVersion)-debug"
+$versionedApk = Get-UniqueArtifactPath -Directory $artifactDir -BaseName $artifactName -Extension "apk"
 
-& ".\flutter\bin\flutter.bat" build apk --debug --dart-define-from-file=env/supabase.local.json
+& ".\flutter\bin\flutter.bat" build apk --debug `
+  --build-name=$($version.BuildName) `
+  --build-number=$($version.BuildNumber) `
+  --dart-define-from-file=env/supabase.local.json
 
-New-Item -ItemType Directory -Path $artifactDir -Force | Out-Null
-New-Item -ItemType Directory -Path $legacyOutputDir -Force | Out-Null
 Copy-Item ".\build\app\outputs\flutter-apk\app-debug.apk" $versionedApk -Force
-Copy-Item ".\build\app\outputs\flutter-apk\app-debug.apk" $legacyVersionedApk -Force
 
 Write-Host "APK gerada em: $versionedApk"

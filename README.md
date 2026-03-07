@@ -128,13 +128,23 @@ Ou usando o arquivo local:
 Saída esperada:
 
 ```text
-build/app/outputs/flutter-apk/app-release.apk
+artifacts/debug/CodeTrail-<versao+build>-debug.apk
+artifacts/release/CodeTrail-<versao+build>-release.apk
 ```
 
 Observações:
 
 - o projeto está configurado para compilar `release` com a chave de debug para instalação local;
 - para distribuição real, substitua a configuração de assinatura no `android/app/build.gradle.kts`.
+- se você gerar mais de uma APK com a mesma versão, o script cria sufixos `-r2`, `-r3` e assim por diante para não sobrescrever o artefato anterior.
+
+## Versionamento
+
+- a versão oficial do app vem exclusivamente de `pubspec.yaml`
+- `build-name` segue o padrão semântico, por exemplo `1.0.1`
+- `build-number` segue o contador interno, por exemplo `+2`
+- nomes de APK locais e artefatos do CI/CD passam a refletir essa versão real, por exemplo `CodeTrail-1.0.1+2-debug.apk`
+- releases por tag no GitHub devem seguir o `build-name`, por exemplo `v1.0.1`
 
 ## CI/CD
 
@@ -158,8 +168,9 @@ Configuração recomendada no GitHub:
 
 Comportamento dos pipelines:
 
-- `CI` sobe um artefato `CodeTrail-debug-apk`
-- `CD Release` sobe um artefato `CodeTrail-release-<versao>`
+- `CI` sobe um artefato `CodeTrail-debug-<versao+build>`
+- `CD Release` sobe um artefato `CodeTrail-release-<versao+build>`
+- em `tag`, o workflow valida se a tag bate com o `build-name` do `pubspec.yaml`
 - em `tag`, o workflow também cria uma GitHub Release com o APK anexado
 
 Observação:

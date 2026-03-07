@@ -10,6 +10,9 @@ concurrency:
   group: cd-release-${{ github.ref }}
   cancel-in-progress: false
 
+permissions:
+  contents: write
+
 jobs:
   build-release:
     runs-on: ubuntu-latest
@@ -38,6 +41,28 @@ jobs:
       - name: Flutter Pub Get
         run: flutter pub get
 
+      - name: Resolve App Version
+        id: app_version
+        shell: bash
+        run: |
+          VERSION_LINE="$(grep '^version:' pubspec.yaml | awk '{print $2}')"
+          BUILD_NAME="${VERSION_LINE%%+*}"
+          BUILD_NUMBER="${VERSION_LINE##*+}"
+          FULL_VERSION="${BUILD_NAME}+${BUILD_NUMBER}"
+          echo "build_name=${BUILD_NAME}" >> "$GITHUB_OUTPUT"
+          echo "build_number=${BUILD_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "full_version=${FULL_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate Tag Version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [[ "${TAG_VERSION}" != "${{ steps.app_version.outputs.build_name }}" ]]; then
+            echo "Tag ${TAG_VERSION} nao corresponde ao build_name ${{ steps.app_version.outputs.build_name }} do pubspec.yaml."
+            exit 1
+          fi
+
       - name: Generate Code
         run: flutter pub run build_runner build --delete-conflicting-outputs
 
@@ -47,6 +72,8 @@ jobs:
       - name: Build Release APK
         run: >
           flutter build apk --release
+          --build-name=${{ steps.app_version.outputs.build_name }}
+          --build-number=${{ steps.app_version.outputs.build_number }}
           --dart-define=SUPABASE_URL=${SUPABASE_URL}
           --dart-define=SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
 
@@ -55,23 +82,23 @@ jobs:
         shell: bash
         run: |
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            VERSION="${GITHUB_REF_NAME#v}"
+            VERSION="${{ steps.app_version.outputs.full_version }}"
           else
-            VERSION="manual-${GITHUB_RUN_NUMBER}"
+            VERSION="${{ steps.app_version.outputs.full_version }}-manual.${GITHUB_RUN_NUMBER}"
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          cp build/app/outputs/flutter-apk/app-release.apk "CodeTrail-${VERSION}.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "CodeTrail-${VERSION}-release.apk"
 
       - name: Upload Release APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: CodeTrail-release-${{ steps.artifact_name.outputs.version }}
-          path: CodeTrail-${{ steps.artifact_name.outputs.version }}.apk
+          path: CodeTrail-${{ steps.artifact_name.outputs.version }}-release.apk
           retention-days: 30
 
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: CodeTrail-${{ steps.artifact_name.outputs.version }}.apk
+          files: CodeTrail-${{ steps.artifact_name.outputs.version }}-release.apk
           generate_release_notes: true

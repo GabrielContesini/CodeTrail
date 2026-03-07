@@ -13,6 +13,9 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   flutter-validate:
     runs-on: ubuntu-latest
@@ -41,6 +44,18 @@ jobs:
       - name: Flutter Pub Get
         run: flutter pub get
 
+      - name: Resolve App Version
+        id: app_version
+        shell: bash
+        run: |
+          VERSION_LINE="$(grep '^version:' pubspec.yaml | awk '{print $2}')"
+          BUILD_NAME="${VERSION_LINE%%+*}"
+          BUILD_NUMBER="${VERSION_LINE##*+}"
+          FULL_VERSION="${BUILD_NAME}+${BUILD_NUMBER}"
+          echo "build_name=${BUILD_NAME}" >> "$GITHUB_OUTPUT"
+          echo "build_number=${BUILD_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "full_version=${FULL_VERSION}" >> "$GITHUB_OUTPUT"
+
       - name: Generate Code
         run: flutter pub run build_runner build --delete-conflicting-outputs
 
@@ -51,17 +66,25 @@ jobs:
         run: flutter analyze lib test
 
       - name: Run Tests
+        if: ${{ hashFiles('test/**/*.dart') != '' }}
         run: flutter test
 
       - name: Build Debug APK
         run: >
           flutter build apk --debug
+          --build-name=${{ steps.app_version.outputs.build_name }}
+          --build-number=${{ steps.app_version.outputs.build_number }}
           --dart-define=SUPABASE_URL=${SUPABASE_URL}
           --dart-define=SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+
+      - name: Name Debug APK
+        shell: bash
+        run: |
+          cp build/app/outputs/flutter-apk/app-debug.apk "CodeTrail-${{ steps.app_version.outputs.full_version }}-debug.apk"
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: CodeTrail-debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          name: CodeTrail-debug-${{ steps.app_version.outputs.full_version }}
+          path: CodeTrail-${{ steps.app_version.outputs.full_version }}-debug.apk
           retention-days: 14
