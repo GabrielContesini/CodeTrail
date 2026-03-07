@@ -11,6 +11,8 @@ import '../../../shared/widgets/animated_reveal.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/async_value_view.dart';
 import '../../../shared/widgets/page_frame.dart';
+import '../../../shared/widgets/sync_status_card.dart';
+import '../../auth/application/auth_controller.dart';
 import '../../dashboard/application/dashboard_controller.dart';
 import '../../projects/application/projects_controller.dart';
 import '../../reviews/application/reviews_controller.dart';
@@ -27,6 +29,7 @@ class DashboardScreen extends ConsumerWidget {
     final tasksAsync = ref.watch(tasksProvider);
     final reviewsAsync = ref.watch(reviewsProvider);
     final projectsAsync = ref.watch(projectsProvider);
+    final userId = ref.watch(currentUserIdProvider);
 
     return PageFrame(
       title: 'Dashboard',
@@ -102,6 +105,16 @@ class DashboardScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
+                  const SizedBox(height: 14),
+                  AnimatedReveal(
+                    delay: const Duration(milliseconds: 110),
+                    child: SyncStatusCard(
+                      userId: userId,
+                      title: 'Sincronizacao',
+                      subtitle:
+                          'O app salva localmente primeiro e envia para o Supabase quando a conexao permite.',
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   _DashboardSectionTitle(title: 'Ações rápidas'),
                   const SizedBox(height: 10),
