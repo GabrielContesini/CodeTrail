@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+      - 'feature/**'
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  flutter-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    env:
+      SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter Pub Get
+        run: flutter pub get
+
+      - name: Generate Code
+        run: flutter pub run build_runner build --delete-conflicting-outputs
+
+      - name: Ensure Generated Files Are Committed
+        run: git diff --exit-code
+
+      - name: Analyze
+        run: flutter analyze lib test
+
+      - name: Run Tests
+        run: flutter test
+
+      - name: Build Debug APK
+        run: >
+          flutter build apk --debug
+          --dart-define=SUPABASE_URL=${SUPABASE_URL}
+          --dart-define=SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CodeTrail-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 14
