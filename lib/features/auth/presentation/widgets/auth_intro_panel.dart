@@ -51,26 +51,37 @@ class AuthIntroPanel extends StatelessWidget {
                 ),
                 Positioned.fill(
                   child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
+                    child: Stack(
+                      alignment: Alignment.center,
                       children: [
                         Container(
-                          width: 132,
-                          height: 132,
+                          width: 188,
+                          height: 188,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: scheme.surface.withValues(alpha: 0.34),
+                            border: Border.all(
+                              color: scheme.primary.withValues(alpha: 0.18),
+                            ),
+                          ),
+                        ),
+                        Container(
+                          width: 138,
+                          height: 138,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: scheme.surface.withValues(alpha: 0.28),
+                            border: Border.all(
+                              color: scheme.primary.withValues(alpha: 0.18),
+                            ),
                             boxShadow: [
                               BoxShadow(
-                                color: scheme.primary.withValues(alpha: 0.22),
-                                blurRadius: 32,
-                                spreadRadius: 2,
+                                color: scheme.primary.withValues(alpha: 0.18),
+                                blurRadius: 42,
+                                spreadRadius: 4,
                               ),
                             ],
                           ),
-                          child: const Center(
-                            child: AppLogo(size: 84),
-                          ),
+                          child: const Center(child: AppLogo(size: 82)),
                         ),
                       ],
                     ),
