@@ -54,16 +54,23 @@ class AuthIntroPanel extends StatelessWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Image.asset(
-                          'assets/design/logo_animated.gif',
-                          width: 126,
-                          height: 126,
-                        ),
-                        const SizedBox(height: 10),
-                        Image.asset(
-                          'assets/design/logo.png',
-                          width: 68,
-                          height: 68,
+                        Container(
+                          width: 132,
+                          height: 132,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: scheme.surface.withValues(alpha: 0.34),
+                            boxShadow: [
+                              BoxShadow(
+                                color: scheme.primary.withValues(alpha: 0.22),
+                                blurRadius: 32,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: const Center(
+                            child: AppLogo(size: 84),
+                          ),
                         ),
                       ],
                     ),
