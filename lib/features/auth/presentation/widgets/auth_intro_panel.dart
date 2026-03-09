@@ -23,89 +23,22 @@ class AuthIntroPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: Stack(
-              children: [
-                AspectRatio(
-                  aspectRatio: 1.7,
-                  child: Image.asset(
-                    'assets/design/background.webp',
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.black.withValues(alpha: 0.10),
-                          scheme.surface.withValues(alpha: 0.18),
-                          scheme.surface.withValues(alpha: 0.74),
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned.fill(
-                  child: Center(
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(
-                          width: 188,
-                          height: 188,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: scheme.primary.withValues(alpha: 0.18),
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: 138,
-                          height: 138,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: scheme.surface.withValues(alpha: 0.28),
-                            border: Border.all(
-                              color: scheme.primary.withValues(alpha: 0.18),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: scheme.primary.withValues(alpha: 0.18),
-                                blurRadius: 42,
-                                spreadRadius: 4,
-                              ),
-                            ],
-                          ),
-                          child: const Center(child: AppLogo(size: 82)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: scheme.primary.withValues(alpha: 0.12),
+              color: scheme.secondary.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: scheme.outline.withValues(alpha: 0.72)),
             ),
             child: Text(
               eyebrow,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: scheme.primary,
+                color: scheme.secondary,
                 fontWeight: FontWeight.w800,
               ),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 22),
           const AppLogo(size: 64, showLabel: true),
           const SizedBox(height: 22),
           Text(

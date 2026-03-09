@@ -91,6 +91,7 @@ flutter:
     - CodeTrail.svg
     - assets/design/background.webp
     - assets/design/app_icon.png
+    - assets/design/CodeTrailMainIcon.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:
