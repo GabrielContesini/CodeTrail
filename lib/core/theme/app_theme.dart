@@ -23,7 +23,7 @@ class AppTheme {
       surface: AppColors.darkSurface,
       onSurface: AppColors.darkTextPrimary,
       onPrimary: Colors.white,
-      onSecondary: Color(0xFF07130B),
+      onSecondary: AppColors.brandBlack,
       outline: AppColors.darkBorder,
     );
 
