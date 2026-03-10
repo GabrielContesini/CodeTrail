@@ -50,3 +50,13 @@ env/*.local.json
 # Local SDK and generated release artifacts
 /flutter/
 /artifacts/
+
+# Local design source packs
+/IconKitchen-Output/
+/Design Pack/
+/CodeTrailIconPack/
+
+# Nested sibling repositories kept independent from the mobile app repo
+/CodeTrailWindows/
+/CodeTrail-LandingPage/
+/codetrail-command-center/
