@@ -46,6 +46,7 @@ class _NavigationShellScaffoldState extends State<NavigationShellScaffold> {
           (item) =>
               item.route == AppRoutes.reviews ||
               item.route == AppRoutes.notes ||
+              item.route == AppRoutes.flashcards ||
               item.route == AppRoutes.analytics ||
               item.route == AppRoutes.settings,
         )
@@ -417,7 +418,11 @@ class _DockMoreItem extends StatelessWidget {
                   : Colors.transparent,
             ),
             child: Center(
-              child: Icon(Icons.more_horiz_rounded, size: 22, color: foreground),
+              child: Icon(
+                Icons.more_horiz_rounded,
+                size: 22,
+                color: foreground,
+              ),
             ),
           ),
         ),
@@ -513,7 +518,9 @@ class _MoreSheetItem extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
             border: Border.all(color: Theme.of(context).colorScheme.outline),
-            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.34),
+            color: Theme.of(
+              context,
+            ).colorScheme.surface.withValues(alpha: 0.34),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -526,9 +533,9 @@ class _MoreSheetItem extends StatelessWidget {
               Text(
                 item.label,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
               ),
             ],
           ),

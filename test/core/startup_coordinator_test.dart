@@ -23,81 +23,99 @@ void main() {
       );
     });
 
-    test('resolveInitialRoute seeds catalog and signs out stale session', () async {
-      authRepository.currentSessionValue = _sessionFor('user-1');
+    test(
+      'resolveInitialRoute seeds catalog and signs out stale session',
+      () async {
+        authRepository.currentSessionValue = _sessionFor('user-1');
 
-      final route = await coordinator.resolveInitialRoute();
+        final route = await coordinator.resolveInitialRoute();
 
-      expect(route, AppRoutes.login);
-      expect(studyRepository.ensureSeededCatalogCalls, 1);
-      expect(authRepository.signOutCalls, 1);
-    });
+        expect(route, AppRoutes.login);
+        expect(studyRepository.ensureSeededCatalogCalls, 1);
+        expect(authRepository.signOutCalls, 1);
+      },
+    );
 
-    test('resolveAuthenticatedRoute returns login when session restore fails', () async {
-      authRepository.restoreSessionResult = false;
+    test(
+      'resolveAuthenticatedRoute returns login when session restore fails',
+      () async {
+        authRepository.restoreSessionResult = false;
 
-      final route = await coordinator.resolveAuthenticatedRoute();
+        final route = await coordinator.resolveAuthenticatedRoute();
 
-      expect(route, AppRoutes.login);
-      expect(studyRepository.syncUserIds, isEmpty);
-    });
+        expect(route, AppRoutes.login);
+        expect(studyRepository.syncUserIds, isEmpty);
+      },
+    );
 
-    test('resolveAuthenticatedRoute returns onboarding when profile is missing', () async {
-      authRepository.restoreSessionResult = true;
-      authRepository.currentSessionValue = _sessionFor('user-2');
+    test(
+      'resolveAuthenticatedRoute returns onboarding when profile is missing',
+      () async {
+        authRepository.restoreSessionResult = true;
+        authRepository.currentSessionValue = _sessionFor('user-2');
 
-      final route = await coordinator.resolveAuthenticatedRoute();
+        final route = await coordinator.resolveAuthenticatedRoute();
 
-      expect(route, AppRoutes.onboarding);
-      expect(studyRepository.syncUserIds, ['user-2']);
-    });
+        expect(route, AppRoutes.onboarding);
+        expect(studyRepository.syncUserIds, ['user-2']);
+      },
+    );
 
-    test('resolveAuthenticatedRoute returns dashboard for onboarded profile', () async {
-      authRepository.restoreSessionResult = true;
-      authRepository.currentSessionValue = _sessionFor('user-3');
-      studyRepository.profile = _profile(
-        userId: 'user-3',
-        onboardingCompleted: true,
-      );
+    test(
+      'resolveAuthenticatedRoute returns dashboard for onboarded profile',
+      () async {
+        authRepository.restoreSessionResult = true;
+        authRepository.currentSessionValue = _sessionFor('user-3');
+        studyRepository.profile = _profile(
+          userId: 'user-3',
+          onboardingCompleted: true,
+        );
 
-      final route = await coordinator.resolveAuthenticatedRoute();
+        final route = await coordinator.resolveAuthenticatedRoute();
 
-      expect(route, AppRoutes.dashboard);
-      expect(studyRepository.syncUserIds, ['user-3']);
-    });
+        expect(route, AppRoutes.dashboard);
+        expect(studyRepository.syncUserIds, ['user-3']);
+      },
+    );
 
-    test('resolvePostLoginRoute throws when session never becomes available', () async {
-      expect(
-        coordinator.resolvePostLoginRoute(),
-        throwsA(isA<StateError>()),
-      );
-    });
+    test(
+      'resolvePostLoginRoute throws when session never becomes available',
+      () async {
+        expect(coordinator.resolvePostLoginRoute(), throwsA(isA<StateError>()));
+      },
+    );
 
-    test('resolvePostLoginRoute routes to onboarding when profile is incomplete', () async {
-      authRepository.currentSessionValue = _sessionFor('user-4');
-      studyRepository.profile = _profile(
-        userId: 'user-4',
-        onboardingCompleted: false,
-      );
+    test(
+      'resolvePostLoginRoute routes to onboarding when profile is incomplete',
+      () async {
+        authRepository.currentSessionValue = _sessionFor('user-4');
+        studyRepository.profile = _profile(
+          userId: 'user-4',
+          onboardingCompleted: false,
+        );
 
-      final route = await coordinator.resolvePostLoginRoute();
+        final route = await coordinator.resolvePostLoginRoute();
 
-      expect(route, AppRoutes.onboarding);
-      expect(studyRepository.syncUserIds, ['user-4']);
-    });
+        expect(route, AppRoutes.onboarding);
+        expect(studyRepository.syncUserIds, ['user-4']);
+      },
+    );
 
-    test('resolvePostLoginRoute routes to dashboard when profile is ready', () async {
-      authRepository.currentSessionValue = _sessionFor('user-5');
-      studyRepository.profile = _profile(
-        userId: 'user-5',
-        onboardingCompleted: true,
-      );
+    test(
+      'resolvePostLoginRoute routes to dashboard when profile is ready',
+      () async {
+        authRepository.currentSessionValue = _sessionFor('user-5');
+        studyRepository.profile = _profile(
+          userId: 'user-5',
+          onboardingCompleted: true,
+        );
 
-      final route = await coordinator.resolvePostLoginRoute();
+        final route = await coordinator.resolvePostLoginRoute();
 
-      expect(route, AppRoutes.dashboard);
-      expect(studyRepository.syncUserIds, ['user-5']);
-    });
+        expect(route, AppRoutes.dashboard);
+        expect(studyRepository.syncUserIds, ['user-5']);
+      },
+    );
   });
 }
 
@@ -110,7 +128,8 @@ class _FakeAuthRepository extends Fake implements AuthRepository {
   Session? get currentSession => currentSessionValue;
 
   @override
-  Stream<Session?> sessionChanges() => Stream<Session?>.value(currentSessionValue);
+  Stream<Session?> sessionChanges() =>
+      Stream<Session?>.value(currentSessionValue);
 
   @override
   Future<bool> restoreSessionOrSignOut() async => restoreSessionResult;
@@ -170,6 +189,10 @@ class _FakeStudyRepository extends Fake implements StudyRepository {
       const Stream<List<StudyNoteEntity>>.empty();
 
   @override
+  Stream<List<FlashcardEntity>> watchFlashcards(String userId) =>
+      const Stream<List<FlashcardEntity>>.empty();
+
+  @override
   Stream<List<TrackBlueprint>> watchTracks(String userId) =>
       const Stream<List<TrackBlueprint>>.empty();
 
@@ -223,6 +246,12 @@ class _FakeStudyRepository extends Fake implements StudyRepository {
 
   @override
   Future<void> deleteNote(String noteId) async {}
+
+  @override
+  Future<void> saveFlashcard(FlashcardEntity flashcard) async {}
+
+  @override
+  Future<void> deleteFlashcard(String flashcardId) async {}
 
   @override
   Future<void> saveProfile(ProfileEntity profile) async {}
