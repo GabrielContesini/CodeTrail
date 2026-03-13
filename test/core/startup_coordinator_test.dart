@@ -193,6 +193,10 @@ class _FakeStudyRepository extends Fake implements StudyRepository {
       const Stream<List<FlashcardEntity>>.empty();
 
   @override
+  Stream<List<MindMapEntity>> watchMindMaps(String userId) =>
+      const Stream<List<MindMapEntity>>.empty();
+
+  @override
   Stream<List<TrackBlueprint>> watchTracks(String userId) =>
       const Stream<List<TrackBlueprint>>.empty();
 
@@ -252,6 +256,12 @@ class _FakeStudyRepository extends Fake implements StudyRepository {
 
   @override
   Future<void> deleteFlashcard(String flashcardId) async {}
+
+  @override
+  Future<void> saveMindMap(MindMapEntity mindMap) async {}
+
+  @override
+  Future<void> deleteMindMap(String mindMapId) async {}
 
   @override
   Future<void> saveProfile(ProfileEntity profile) async {}

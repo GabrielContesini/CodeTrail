@@ -26,6 +26,7 @@ class _NavigationShellScaffoldState extends State<NavigationShellScaffold> {
 
   @override
   Widget build(BuildContext context) {
+    final isMindMapEditor = widget.location.startsWith(AppRoutes.mindMapEditor);
     final items = buildNavigationItems();
     final startItems = items
         .where(
@@ -47,6 +48,7 @@ class _NavigationShellScaffoldState extends State<NavigationShellScaffold> {
               item.route == AppRoutes.reviews ||
               item.route == AppRoutes.notes ||
               item.route == AppRoutes.flashcards ||
+              item.route == AppRoutes.mindMaps ||
               item.route == AppRoutes.analytics ||
               item.route == AppRoutes.settings,
         )
@@ -77,47 +79,51 @@ class _NavigationShellScaffoldState extends State<NavigationShellScaffold> {
                           duration: const Duration(milliseconds: 220),
                           curve: Curves.easeOutCubic,
                           padding: EdgeInsets.only(
-                            bottom: _navVisible ? 128 : 18,
+                            bottom: isMindMapEditor
+                                ? 18
+                                : (_navVisible ? 128 : 18),
                           ),
                           child: widget.child,
                         ),
                       ),
                     ),
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 8,
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 220),
-                        switchInCurve: Curves.easeOutCubic,
-                        switchOutCurve: Curves.easeInCubic,
-                        child: _navVisible
-                            ? _PortfolioDock(
-                                key: const ValueKey('portfolio-dock'),
-                                location: widget.location,
-                                startItems: startItems,
-                                endItems: endItems,
-                                overflowItems: overflowItems,
-                                onToggleVisibility: _toggleNavigation,
-                              )
-                            : Align(
-                                key: const ValueKey('portfolio-dock-hidden'),
-                                child: _DockVisibilityButton(
-                                  icon: Icons.keyboard_arrow_up_rounded,
-                                  backgroundColor: Theme.of(
-                                    context,
-                                  ).colorScheme.surface.withValues(alpha: 0.94),
-                                  borderColor: Theme.of(
-                                    context,
-                                  ).colorScheme.outline,
-                                  iconColor: Theme.of(
-                                    context,
-                                  ).colorScheme.primary,
-                                  onPressed: _toggleNavigation,
+                    if (!isMindMapEditor)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 8,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 220),
+                          switchInCurve: Curves.easeOutCubic,
+                          switchOutCurve: Curves.easeInCubic,
+                          child: _navVisible
+                              ? _PortfolioDock(
+                                  key: const ValueKey('portfolio-dock'),
+                                  location: widget.location,
+                                  startItems: startItems,
+                                  endItems: endItems,
+                                  overflowItems: overflowItems,
+                                  onToggleVisibility: _toggleNavigation,
+                                )
+                              : Align(
+                                  key: const ValueKey('portfolio-dock-hidden'),
+                                  child: _DockVisibilityButton(
+                                    icon: Icons.keyboard_arrow_up_rounded,
+                                    backgroundColor: Theme.of(context)
+                                        .colorScheme
+                                        .surface
+                                        .withValues(alpha: 0.94),
+                                    borderColor: Theme.of(
+                                      context,
+                                    ).colorScheme.outline,
+                                    iconColor: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                    onPressed: _toggleNavigation,
+                                  ),
                                 ),
-                              ),
+                        ),
                       ),
-                    ),
                   ],
                 ),
               );
@@ -603,6 +609,9 @@ bool _matchesLocation(String route, String location) {
   }
   if (route == AppRoutes.projects) {
     return location == route || location.startsWith(AppRoutes.projectDetails);
+  }
+  if (route == AppRoutes.mindMaps) {
+    return location == route || location.startsWith(AppRoutes.mindMapEditor);
   }
   if (route == AppRoutes.settings) {
     return location == route || location.startsWith('${AppRoutes.settings}/');

@@ -10,6 +10,7 @@ import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
 import '../../features/flashcards/presentation/flashcards_screen.dart';
+import '../../features/mind_maps/presentation/mind_maps_screen.dart';
 import '../../features/notes/presentation/notes_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/projects/presentation/projects_screen.dart';
@@ -47,6 +48,9 @@ class AppRoutes {
   static const projectDetails = '/projects/details';
   static const notes = '/notes';
   static const flashcards = '/flashcards';
+  static const mindMaps = '/mind-maps';
+  static const mindMapEditor = '/mind-maps/editor';
+  static const mindMapNew = '/mind-maps/editor/new';
   static const analytics = '/analytics';
   static const settings = '/settings';
   static const settingsAccount = '/settings/account';
@@ -146,6 +150,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const FlashcardsScreen(),
           ),
           GoRoute(
+            path: AppRoutes.mindMaps,
+            builder: (context, state) => const MindMapsScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.mindMapNew,
+            builder: (context, state) =>
+                const MindMapsScreen(immersive: true, createOnOpen: true),
+          ),
+          GoRoute(
+            path: '${AppRoutes.mindMapEditor}/:mindMapId',
+            builder: (context, state) => MindMapsScreen(
+              immersive: true,
+              initialMindMapId: state.pathParameters['mindMapId'],
+            ),
+          ),
+          GoRoute(
             path: AppRoutes.analytics,
             builder: (context, state) => const AnalyticsScreen(),
           ),
@@ -222,6 +242,11 @@ List<AppNavigationItem> buildNavigationItems() {
       label: 'Flashcards',
       route: AppRoutes.flashcards,
       iconKey: 'cards',
+    ),
+    AppNavigationItem(
+      label: 'Mind Maps',
+      route: AppRoutes.mindMaps,
+      iconKey: 'mindmap',
     ),
     AppNavigationItem(
       label: 'Analytics',
