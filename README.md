@@ -183,6 +183,8 @@ Observação:
 - Dados do usuário são persistidos localmente mesmo offline.
 - A sincronização é disparada no bootstrap, após CRUD e ao recuperar conexão.
 - Para notas sincronizarem com o Supabase, aplique também `supabase/migrations/20260307_add_study_notes.sql`.
+- Para flashcards, aplique `supabase/migrations/20260312_add_flashcards.sql`.
+- Para mind maps, aplique `supabase/migrations/20260312_add_mind_maps.sql`.
 
 ## Verificação local
 
