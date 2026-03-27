@@ -435,12 +435,7 @@ class NoteAiGenerator {
       if (label.isEmpty || !seenLabels.add(_normalizeKey(label))) {
         continue;
       }
-      branches.add(
-        _MindMapBranch(
-          label: label,
-          children: dedupedChildren,
-        ),
-      );
+      branches.add(_MindMapBranch(label: label, children: dedupedChildren));
       if (branches.length >= _maxMindMapBranches) {
         return branches;
       }
@@ -452,11 +447,7 @@ class NoteAiGenerator {
         if (label.isEmpty || !seenLabels.add(_normalizeKey(label))) {
           continue;
         }
-        final child = _shortLabel(
-          pair.definition,
-          maxWords: 8,
-          maxLength: 40,
-        );
+        final child = _shortLabel(pair.definition, maxWords: 8, maxLength: 40);
         branches.add(
           _MindMapBranch(
             label: label,
@@ -510,10 +501,7 @@ class NoteAiGenerator {
         return;
       }
       suggestions.add(
-        _TaskSuggestion(
-          title: cleanTitle,
-          description: cleanDescription,
-        ),
+        _TaskSuggestion(title: cleanTitle, description: cleanDescription),
       );
     }
 
@@ -655,7 +643,8 @@ class NoteAiGenerator {
 
     for (var branchIndex = 0; branchIndex < branches.length; branchIndex++) {
       final branch = branches[branchIndex];
-      final angle = -math.pi / 2 + (2 * math.pi * branchIndex / branches.length);
+      final angle =
+          -math.pi / 2 + (2 * math.pi * branchIndex / branches.length);
       final branchX = centerX + math.cos(angle) * branchRadius;
       final branchY = centerY + math.sin(angle) * branchRadius;
       final branchId = 'branch-${createId()}';
@@ -685,13 +674,19 @@ class NoteAiGenerator {
         continue;
       }
 
-      final spread =
-          branch.children.length == 1 ? 0.0 : math.min(0.9, branch.children.length * 0.22);
-      for (var childIndex = 0; childIndex < branch.children.length; childIndex++) {
+      final spread = branch.children.length == 1
+          ? 0.0
+          : math.min(0.9, branch.children.length * 0.22);
+      for (
+        var childIndex = 0;
+        childIndex < branch.children.length;
+        childIndex++
+      ) {
         final child = branch.children[childIndex];
         final childOffset = branch.children.length == 1
             ? 0.0
-            : (-spread / 2) + (spread * childIndex / (branch.children.length - 1));
+            : (-spread / 2) +
+                  (spread * childIndex / (branch.children.length - 1));
         final childAngle = angle + childOffset;
         final childX = branchX + math.cos(childAngle) * childRadius;
         final childY = branchY + math.sin(childAngle) * childRadius;
@@ -793,10 +788,7 @@ class NoteAiGenerator {
 }
 
 class _ParsedNote {
-  const _ParsedNote({
-    required this.sections,
-    required this.factPairs,
-  });
+  const _ParsedNote({required this.sections, required this.factPairs});
 
   final List<_NoteSection> sections;
   final List<_NoteFactPair> factPairs;
@@ -835,20 +827,14 @@ class _NoteFactPair {
 }
 
 class _MindMapBranch {
-  const _MindMapBranch({
-    required this.label,
-    required this.children,
-  });
+  const _MindMapBranch({required this.label, required this.children});
 
   final String label;
   final List<String> children;
 }
 
 class _TaskSuggestion {
-  const _TaskSuggestion({
-    required this.title,
-    required this.description,
-  });
+  const _TaskSuggestion({required this.title, required this.description});
 
   final String title;
   final String description;

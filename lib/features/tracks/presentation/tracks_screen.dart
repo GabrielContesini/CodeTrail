@@ -36,8 +36,10 @@ class TracksScreen extends ConsumerWidget {
         data: (tracks) {
           return LayoutBuilder(
             builder: (context, constraints) {
-              final int columns =
-                  (constraints.maxWidth / 340).floor().clamp(1, 4);
+              final int columns = (constraints.maxWidth / 340).floor().clamp(
+                1,
+                4,
+              );
               final aspectRatio = switch (columns) {
                 1 => 1.08,
                 2 => 1.26,
@@ -57,8 +59,9 @@ class TracksScreen extends ConsumerWidget {
                   final item = tracks[index];
                   return InkWell(
                     borderRadius: BorderRadius.circular(28),
-                    onTap: () =>
-                        context.go('${AppRoutes.trackDetails}/${item.track.id}'),
+                    onTap: () => context.go(
+                      '${AppRoutes.trackDetails}/${item.track.id}',
+                    ),
                     child: AppCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,11 +85,8 @@ class TracksScreen extends ConsumerWidget {
                             item.track.name,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: Theme.of(
-                              context,
-                            ).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.w800),
                           ),
                           const SizedBox(height: 8),
                           Text(

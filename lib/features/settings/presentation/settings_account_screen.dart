@@ -76,9 +76,7 @@ class _SettingsAccountScreenState extends ConsumerState<SettingsAccountScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        'Tente novamente em alguns instantes.',
-                      ),
+                      const Text('Tente novamente em alguns instantes.'),
                     ],
                   ),
                 ),
@@ -123,8 +121,12 @@ class _SettingsAccountScreenState extends ConsumerState<SettingsAccountScreen> {
                           shape: BoxShape.circle,
                           gradient: LinearGradient(
                             colors: [
-                              context.colorScheme.primary.withValues(alpha: 0.94),
-                              context.colorScheme.secondary.withValues(alpha: 0.88),
+                              context.colorScheme.primary.withValues(
+                                alpha: 0.94,
+                              ),
+                              context.colorScheme.secondary.withValues(
+                                alpha: 0.88,
+                              ),
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
@@ -158,10 +160,7 @@ class _SettingsAccountScreenState extends ConsumerState<SettingsAccountScreen> {
                       ),
                     ),
                     const SizedBox(height: 18),
-                    SettingsOverviewRow(
-                      label: 'Trilha',
-                      value: trackName,
-                    ),
+                    SettingsOverviewRow(label: 'Trilha', value: trackName),
                     SettingsOverviewRow(
                       label: 'Nível',
                       value: _selectedLevel.label,
@@ -330,23 +329,22 @@ class _SettingsAccountScreenState extends ConsumerState<SettingsAccountScreen> {
     _selectedTrackId = profile.selectedTrackId ?? '';
   }
 
-  Future<void> _saveProfile(
-    WidgetRef ref,
-    ProfileEntity profile,
-  ) async {
+  Future<void> _saveProfile(WidgetRef ref, ProfileEntity profile) async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _saving = true);
-    await ref.read(appSettingsProvider.notifier).saveProfile(
-      profile.copyWith(
-        fullName: _nameController.text.trim(),
-        email: _emailController.text.trim(),
-        desiredArea: _areaController.text.trim(),
-        currentLevel: _selectedLevel,
-        selectedTrackId: _selectedTrackId.isEmpty ? null : _selectedTrackId,
-        updatedAt: DateTime.now().toUtc(),
-      ),
-    );
+    await ref
+        .read(appSettingsProvider.notifier)
+        .saveProfile(
+          profile.copyWith(
+            fullName: _nameController.text.trim(),
+            email: _emailController.text.trim(),
+            desiredArea: _areaController.text.trim(),
+            currentLevel: _selectedLevel,
+            selectedTrackId: _selectedTrackId.isEmpty ? null : _selectedTrackId,
+            updatedAt: DateTime.now().toUtc(),
+          ),
+        );
     if (!mounted) return;
 
     setState(() => _saving = false);

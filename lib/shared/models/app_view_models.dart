@@ -283,10 +283,7 @@ class StudySessionTemplate {
     ];
   }
 
-  String renderNotes({
-    String? trackName,
-    String? moduleTitle,
-  }) {
+  String renderNotes({String? trackName, String? moduleTitle}) {
     return notesTemplate
         .replaceAll('{track}', trackName ?? 'sua trilha atual')
         .replaceAll('{module}', moduleTitle ?? 'o proximo bloco pratico');

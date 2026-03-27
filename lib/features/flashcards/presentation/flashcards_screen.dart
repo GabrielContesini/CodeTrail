@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../domain/entities/billing_entities.dart';
 import '../../../domain/entities/app_entities.dart';
 import '../../../shared/extensions/context_extensions.dart';
 import '../../../shared/models/app_enums.dart';
@@ -13,6 +14,9 @@ import '../../../shared/widgets/async_value_view.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/page_frame.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../billing/application/billing_access_exception.dart';
+import '../../billing/presentation/widgets/billing_feature_gate.dart';
+import '../../billing/presentation/widgets/billing_upgrade_modal.dart';
 import '../../projects/application/projects_controller.dart';
 import '../../tracks/application/tracks_controller.dart';
 import '../application/flashcards_controller.dart';
@@ -67,368 +71,375 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen> {
           label: const Text('Novo card'),
         ),
       ],
-      child: AsyncValueView(
-        value: flashcardsAsync,
-        loadingMessage: 'Preparando decks e fila de revisão...',
-        data: (flashcards) {
-          final trackNameById = {
-            for (final item in trackBlueprints) item.track.id: item.track.name,
-          };
-          final moduleNameById = {
-            for (final item in trackBlueprints)
-              for (final module in item.modules) module.id: module.title,
-          };
-          final projectNameById = {
-            for (final item in projectBundles)
-              item.project.id: item.project.title,
-          };
+      child: BillingFeatureGate(
+        featureKey: BillingFeatureKey.flashcardsAccess,
+        lockedTitle: 'Flashcards premium bloqueados',
+        lockedSubtitle:
+            'Faça upgrade para criar decks ilimitados, revisar com repetição espaçada e liberar a biblioteca completa.',
+        child: AsyncValueView(
+          value: flashcardsAsync,
+          loadingMessage: 'Preparando decks e fila de revisão...',
+          data: (flashcards) {
+            final trackNameById = {
+              for (final item in trackBlueprints)
+                item.track.id: item.track.name,
+            };
+            final moduleNameById = {
+              for (final item in trackBlueprints)
+                for (final module in item.modules) module.id: module.title,
+            };
+            final projectNameById = {
+              for (final item in projectBundles)
+                item.project.id: item.project.title,
+            };
 
-          if (flashcards.isEmpty) {
-            return EmptyState(
-              title: 'Nenhum flashcard criado ainda',
-              subtitle:
-                  'Monte um primeiro deck curto para revisar conceitos, comandos ou perguntas técnicas da sua trilha.',
-              action: FilledButton.icon(
-                onPressed: () => _showFlashcardDialog(
-                  context,
-                  ref,
-                  trackBlueprints: trackBlueprints,
-                  projectBundles: projectBundles,
-                  initialDeck: 'Geral',
+            if (flashcards.isEmpty) {
+              return EmptyState(
+                title: 'Nenhum flashcard criado ainda',
+                subtitle:
+                    'Monte um primeiro deck curto para revisar conceitos, comandos ou perguntas técnicas da sua trilha.',
+                action: FilledButton.icon(
+                  onPressed: () => _showFlashcardDialog(
+                    context,
+                    ref,
+                    trackBlueprints: trackBlueprints,
+                    projectBundles: projectBundles,
+                    initialDeck: 'Geral',
+                  ),
+                  icon: const Icon(Icons.add_card_rounded),
+                  label: const Text('Criar primeiro card'),
                 ),
-                icon: const Icon(Icons.add_card_rounded),
-                label: const Text('Criar primeiro card'),
-              ),
+              );
+            }
+
+            final decks = <String>{
+              'Geral',
+              ...flashcards.map((item) => _normalizedDeckName(item.deckName)),
+            }..removeWhere((item) => item.trim().isEmpty);
+            final deckOptions = ['Todas', ...(decks.toList()..sort())];
+            if (!deckOptions.contains(_selectedDeck)) {
+              _selectedDeck = 'Todas';
+            }
+
+            final localNow = DateTime.now();
+            final endOfToday = DateTime(
+              localNow.year,
+              localNow.month,
+              localNow.day,
+              23,
+              59,
+              59,
+              999,
             );
-          }
+            final normalizedQuery = _searchQuery.trim().toLowerCase();
+            final deckFiltered = _selectedDeck == 'Todas'
+                ? flashcards
+                : flashcards
+                      .where(
+                        (item) =>
+                            _normalizedDeckName(item.deckName) == _selectedDeck,
+                      )
+                      .toList();
+            final filteredCards = normalizedQuery.isEmpty
+                ? deckFiltered
+                : deckFiltered.where((card) {
+                    final haystack =
+                        '${card.deckName} ${card.question} ${card.answer}'
+                            .toLowerCase();
+                    return haystack.contains(normalizedQuery);
+                  }).toList();
+            final dueNowCards = filteredCards
+                .where((item) => !_toLocal(item.dueAt).isAfter(localNow))
+                .toList();
+            final dueTodayCount = flashcards
+                .where((item) => !_toLocal(item.dueAt).isAfter(endOfToday))
+                .length;
+            final reviewedCount = flashcards
+                .where((item) => item.reviewCount > 0)
+                .length;
+            final masteredCount = flashcards
+                .where(
+                  (item) => item.correctStreak >= 3 || item.intervalDays >= 15,
+                )
+                .length;
 
-          final decks = <String>{
-            'Geral',
-            ...flashcards.map((item) => _normalizedDeckName(item.deckName)),
-          }..removeWhere((item) => item.trim().isEmpty);
-          final deckOptions = ['Todas', ...(decks.toList()..sort())];
-          if (!deckOptions.contains(_selectedDeck)) {
-            _selectedDeck = 'Todas';
-          }
-
-          final localNow = DateTime.now();
-          final endOfToday = DateTime(
-            localNow.year,
-            localNow.month,
-            localNow.day,
-            23,
-            59,
-            59,
-            999,
-          );
-          final normalizedQuery = _searchQuery.trim().toLowerCase();
-          final deckFiltered = _selectedDeck == 'Todas'
-              ? flashcards
-              : flashcards
-                    .where(
-                      (item) =>
-                          _normalizedDeckName(item.deckName) == _selectedDeck,
-                    )
-                    .toList();
-          final filteredCards = normalizedQuery.isEmpty
-              ? deckFiltered
-              : deckFiltered.where((card) {
-                  final haystack =
-                      '${card.deckName} ${card.question} ${card.answer}'
-                          .toLowerCase();
-                  return haystack.contains(normalizedQuery);
-                }).toList();
-          final dueNowCards = filteredCards
-              .where((item) => !_toLocal(item.dueAt).isAfter(localNow))
-              .toList();
-          final dueTodayCount = flashcards
-              .where((item) => !_toLocal(item.dueAt).isAfter(endOfToday))
-              .length;
-          final reviewedCount = flashcards
-              .where((item) => item.reviewCount > 0)
-              .length;
-          final masteredCount = flashcards
-              .where(
-                (item) => item.correctStreak >= 3 || item.intervalDays >= 15,
-              )
-              .length;
-
-          if (filteredCards.isEmpty) {
-            _selectedCardId = null;
-          } else {
-            _selectedCardId ??= dueNowCards.isNotEmpty
-                ? dueNowCards.first.id
-                : filteredCards.first.id;
-            if (filteredCards.every((item) => item.id != _selectedCardId)) {
-              _selectedCardId = dueNowCards.isNotEmpty
+            if (filteredCards.isEmpty) {
+              _selectedCardId = null;
+            } else {
+              _selectedCardId ??= dueNowCards.isNotEmpty
                   ? dueNowCards.first.id
                   : filteredCards.first.id;
-              _showAnswer = false;
+              if (filteredCards.every((item) => item.id != _selectedCardId)) {
+                _selectedCardId = dueNowCards.isNotEmpty
+                    ? dueNowCards.first.id
+                    : filteredCards.first.id;
+                _showAnswer = false;
+              }
             }
-          }
 
-          FlashcardEntity? selectedCard;
-          for (final card in filteredCards) {
-            if (card.id == _selectedCardId) {
-              selectedCard = card;
-              break;
+            FlashcardEntity? selectedCard;
+            for (final card in filteredCards) {
+              if (card.id == _selectedCardId) {
+                selectedCard = card;
+                break;
+              }
             }
-          }
 
-          final summary = [
-            _SummaryMetricData(
-              label: 'Na fila agora',
-              value: '${dueNowCards.length}',
-              helper: dueNowCards.isEmpty ? 'Tudo em dia' : 'Cards vencidos',
-              icon: Icons.bolt_rounded,
-            ),
-            _SummaryMetricData(
-              label: 'Até hoje',
-              value: '$dueTodayCount',
-              helper: 'Liberados até o fim do dia',
-              icon: Icons.today_rounded,
-            ),
-            _SummaryMetricData(
-              label: 'Já revisados',
-              value: '$reviewedCount',
-              helper: 'Biblioteca em movimento',
-              icon: Icons.history_toggle_off_rounded,
-            ),
-            _SummaryMetricData(
-              label: 'Retenção forte',
-              value: '$masteredCount',
-              helper: 'Streak alta ou intervalo longo',
-              icon: Icons.workspace_premium_rounded,
-            ),
-          ];
+            final summary = [
+              _SummaryMetricData(
+                label: 'Na fila agora',
+                value: '${dueNowCards.length}',
+                helper: dueNowCards.isEmpty ? 'Tudo em dia' : 'Cards vencidos',
+                icon: Icons.bolt_rounded,
+              ),
+              _SummaryMetricData(
+                label: 'Até hoje',
+                value: '$dueTodayCount',
+                helper: 'Liberados até o fim do dia',
+                icon: Icons.today_rounded,
+              ),
+              _SummaryMetricData(
+                label: 'Já revisados',
+                value: '$reviewedCount',
+                helper: 'Biblioteca em movimento',
+                icon: Icons.history_toggle_off_rounded,
+              ),
+              _SummaryMetricData(
+                label: 'Retenção forte',
+                value: '$masteredCount',
+                helper: 'Streak alta ou intervalo longo',
+                icon: Icons.workspace_premium_rounded,
+              ),
+            ];
 
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final wide = constraints.maxWidth >= 1460;
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final wide = constraints.maxWidth >= 1460;
 
-              if (!wide) {
-                return ListView(
-                  children: [
-                    Wrap(
-                      spacing: 14,
-                      runSpacing: 14,
-                      children: summary
-                          .map(
-                            (item) => SizedBox(
-                              width: constraints.maxWidth >= 760
-                                  ? (constraints.maxWidth - 14) / 2
-                                  : constraints.maxWidth,
-                              child: _SummaryMetricCard(data: item),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                    const SizedBox(height: 16),
-                    _StudyPanel(
-                      card: selectedCard,
-                      showAnswer: _showAnswer,
-                      dueNow: selectedCard == null
-                          ? false
-                          : !_toLocal(selectedCard.dueAt).isAfter(localNow),
-                      trackNameById: trackNameById,
-                      moduleNameById: moduleNameById,
-                      projectNameById: projectNameById,
-                      onToggleAnswer: selectedCard == null
-                          ? null
-                          : () => setState(() => _showAnswer = !_showAnswer),
-                      onRevealAnswer: selectedCard == null
-                          ? null
-                          : () => setState(() => _showAnswer = true),
-                      onEdit: selectedCard == null
-                          ? null
-                          : () => _showFlashcardDialog(
-                              context,
-                              ref,
-                              trackBlueprints: trackBlueprints,
-                              projectBundles: projectBundles,
-                              card: selectedCard,
-                            ),
-                      onReview: selectedCard == null
-                          ? null
-                          : (grade) => _handleReview(selectedCard!, grade),
-                    ),
-                    const SizedBox(height: 16),
-                    _DeckRail(
-                      compact: true,
-                      deckOptions: deckOptions,
-                      selectedDeck: _selectedDeck,
-                      dueNowCards: dueNowCards,
-                      onSelectDeck: (value) {
-                        setState(() {
-                          _selectedDeck = value;
-                          _selectedCardId = null;
-                          _showAnswer = false;
-                        });
-                      },
-                      onSelectCard: (card) {
-                        setState(() {
-                          _selectedCardId = card.id;
-                          _showAnswer = false;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    _LibraryPanel(
-                      compact: true,
-                      cards: filteredCards,
-                      selectedCardId: _selectedCardId,
-                      searchQuery: _searchQuery,
-                      trackNameById: trackNameById,
-                      moduleNameById: moduleNameById,
-                      projectNameById: projectNameById,
-                      onSearchChanged: (value) =>
-                          setState(() => _searchQuery = value),
-                      onSelectCard: (card) {
-                        setState(() {
-                          _selectedCardId = card.id;
-                          _showAnswer = false;
-                        });
-                      },
-                      onEditCard: (card) => _showFlashcardDialog(
-                        context,
-                        ref,
-                        trackBlueprints: trackBlueprints,
-                        projectBundles: projectBundles,
-                        card: card,
+                if (!wide) {
+                  return ListView(
+                    children: [
+                      Wrap(
+                        spacing: 14,
+                        runSpacing: 14,
+                        children: summary
+                            .map(
+                              (item) => SizedBox(
+                                width: constraints.maxWidth >= 760
+                                    ? (constraints.maxWidth - 14) / 2
+                                    : constraints.maxWidth,
+                                child: _SummaryMetricCard(data: item),
+                              ),
+                            )
+                            .toList(),
                       ),
-                      onDeleteCard: _confirmDelete,
+                      const SizedBox(height: 16),
+                      _StudyPanel(
+                        card: selectedCard,
+                        showAnswer: _showAnswer,
+                        dueNow: selectedCard == null
+                            ? false
+                            : !_toLocal(selectedCard.dueAt).isAfter(localNow),
+                        trackNameById: trackNameById,
+                        moduleNameById: moduleNameById,
+                        projectNameById: projectNameById,
+                        onToggleAnswer: selectedCard == null
+                            ? null
+                            : () => setState(() => _showAnswer = !_showAnswer),
+                        onRevealAnswer: selectedCard == null
+                            ? null
+                            : () => setState(() => _showAnswer = true),
+                        onEdit: selectedCard == null
+                            ? null
+                            : () => _showFlashcardDialog(
+                                context,
+                                ref,
+                                trackBlueprints: trackBlueprints,
+                                projectBundles: projectBundles,
+                                card: selectedCard,
+                              ),
+                        onReview: selectedCard == null
+                            ? null
+                            : (grade) => _handleReview(selectedCard!, grade),
+                      ),
+                      const SizedBox(height: 16),
+                      _DeckRail(
+                        compact: true,
+                        deckOptions: deckOptions,
+                        selectedDeck: _selectedDeck,
+                        dueNowCards: dueNowCards,
+                        onSelectDeck: (value) {
+                          setState(() {
+                            _selectedDeck = value;
+                            _selectedCardId = null;
+                            _showAnswer = false;
+                          });
+                        },
+                        onSelectCard: (card) {
+                          setState(() {
+                            _selectedCardId = card.id;
+                            _showAnswer = false;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _LibraryPanel(
+                        compact: true,
+                        cards: filteredCards,
+                        selectedCardId: _selectedCardId,
+                        searchQuery: _searchQuery,
+                        trackNameById: trackNameById,
+                        moduleNameById: moduleNameById,
+                        projectNameById: projectNameById,
+                        onSearchChanged: (value) =>
+                            setState(() => _searchQuery = value),
+                        onSelectCard: (card) {
+                          setState(() {
+                            _selectedCardId = card.id;
+                            _showAnswer = false;
+                          });
+                        },
+                        onEditCard: (card) => _showFlashcardDialog(
+                          context,
+                          ref,
+                          trackBlueprints: trackBlueprints,
+                          projectBundles: projectBundles,
+                          card: card,
+                        ),
+                        onDeleteCard: _confirmDelete,
+                      ),
+                    ],
+                  );
+                }
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(
+                      width: 320,
+                      child: _DeckRail(
+                        compact: false,
+                        deckOptions: deckOptions,
+                        selectedDeck: _selectedDeck,
+                        dueNowCards: dueNowCards,
+                        onSelectDeck: (value) {
+                          setState(() {
+                            _selectedDeck = value;
+                            _selectedCardId = null;
+                            _showAnswer = false;
+                          });
+                        },
+                        onSelectCard: (card) {
+                          setState(() {
+                            _selectedCardId = card.id;
+                            _showAnswer = false;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 18),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SizedBox(
+                            height: 136,
+                            child: Row(
+                              children: [
+                                for (
+                                  var index = 0;
+                                  index < summary.length;
+                                  index++
+                                )
+                                  Expanded(
+                                    child: Padding(
+                                      padding: EdgeInsets.only(
+                                        right: index == summary.length - 1
+                                            ? 0
+                                            : 12,
+                                      ),
+                                      child: _SummaryMetricCard(
+                                        data: summary[index],
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          Expanded(
+                            child: _StudyPanel(
+                              card: selectedCard,
+                              showAnswer: _showAnswer,
+                              dueNow: selectedCard == null
+                                  ? false
+                                  : !_toLocal(
+                                      selectedCard.dueAt,
+                                    ).isAfter(localNow),
+                              trackNameById: trackNameById,
+                              moduleNameById: moduleNameById,
+                              projectNameById: projectNameById,
+                              onToggleAnswer: selectedCard == null
+                                  ? null
+                                  : () => setState(
+                                      () => _showAnswer = !_showAnswer,
+                                    ),
+                              onRevealAnswer: selectedCard == null
+                                  ? null
+                                  : () => setState(() => _showAnswer = true),
+                              onEdit: selectedCard == null
+                                  ? null
+                                  : () => _showFlashcardDialog(
+                                      context,
+                                      ref,
+                                      trackBlueprints: trackBlueprints,
+                                      projectBundles: projectBundles,
+                                      card: selectedCard,
+                                    ),
+                              onReview: selectedCard == null
+                                  ? null
+                                  : (grade) =>
+                                        _handleReview(selectedCard!, grade),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 18),
+                    SizedBox(
+                      width: 430,
+                      child: _LibraryPanel(
+                        compact: false,
+                        cards: filteredCards,
+                        selectedCardId: _selectedCardId,
+                        searchQuery: _searchQuery,
+                        trackNameById: trackNameById,
+                        moduleNameById: moduleNameById,
+                        projectNameById: projectNameById,
+                        onSearchChanged: (value) =>
+                            setState(() => _searchQuery = value),
+                        onSelectCard: (card) {
+                          setState(() {
+                            _selectedCardId = card.id;
+                            _showAnswer = false;
+                          });
+                        },
+                        onEditCard: (card) => _showFlashcardDialog(
+                          context,
+                          ref,
+                          trackBlueprints: trackBlueprints,
+                          projectBundles: projectBundles,
+                          card: card,
+                        ),
+                        onDeleteCard: _confirmDelete,
+                      ),
                     ),
                   ],
                 );
-              }
-
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SizedBox(
-                    width: 320,
-                    child: _DeckRail(
-                      compact: false,
-                      deckOptions: deckOptions,
-                      selectedDeck: _selectedDeck,
-                      dueNowCards: dueNowCards,
-                      onSelectDeck: (value) {
-                        setState(() {
-                          _selectedDeck = value;
-                          _selectedCardId = null;
-                          _showAnswer = false;
-                        });
-                      },
-                      onSelectCard: (card) {
-                        setState(() {
-                          _selectedCardId = card.id;
-                          _showAnswer = false;
-                        });
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 18),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        SizedBox(
-                          height: 136,
-                          child: Row(
-                            children: [
-                              for (
-                                var index = 0;
-                                index < summary.length;
-                                index++
-                              )
-                                Expanded(
-                                  child: Padding(
-                                    padding: EdgeInsets.only(
-                                      right: index == summary.length - 1
-                                          ? 0
-                                          : 12,
-                                    ),
-                                    child: _SummaryMetricCard(
-                                      data: summary[index],
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        Expanded(
-                          child: _StudyPanel(
-                            card: selectedCard,
-                            showAnswer: _showAnswer,
-                            dueNow: selectedCard == null
-                                ? false
-                                : !_toLocal(
-                                    selectedCard.dueAt,
-                                  ).isAfter(localNow),
-                            trackNameById: trackNameById,
-                            moduleNameById: moduleNameById,
-                            projectNameById: projectNameById,
-                            onToggleAnswer: selectedCard == null
-                                ? null
-                                : () => setState(
-                                    () => _showAnswer = !_showAnswer,
-                                  ),
-                            onRevealAnswer: selectedCard == null
-                                ? null
-                                : () => setState(() => _showAnswer = true),
-                            onEdit: selectedCard == null
-                                ? null
-                                : () => _showFlashcardDialog(
-                                    context,
-                                    ref,
-                                    trackBlueprints: trackBlueprints,
-                                    projectBundles: projectBundles,
-                                    card: selectedCard,
-                                  ),
-                            onReview: selectedCard == null
-                                ? null
-                                : (grade) =>
-                                      _handleReview(selectedCard!, grade),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 18),
-                  SizedBox(
-                    width: 430,
-                    child: _LibraryPanel(
-                      compact: false,
-                      cards: filteredCards,
-                      selectedCardId: _selectedCardId,
-                      searchQuery: _searchQuery,
-                      trackNameById: trackNameById,
-                      moduleNameById: moduleNameById,
-                      projectNameById: projectNameById,
-                      onSearchChanged: (value) =>
-                          setState(() => _searchQuery = value),
-                      onSelectCard: (card) {
-                        setState(() {
-                          _selectedCardId = card.id;
-                          _showAnswer = false;
-                        });
-                      },
-                      onEditCard: (card) => _showFlashcardDialog(
-                        context,
-                        ref,
-                        trackBlueprints: trackBlueprints,
-                        projectBundles: projectBundles,
-                        card: card,
-                      ),
-                      onDeleteCard: _confirmDelete,
-                    ),
-                  ),
-                ],
-              );
-            },
-          );
-        },
+              },
+            );
+          },
+        ),
       ),
     );
   }
@@ -1359,28 +1370,39 @@ Future<void> _showFlashcardDialog(
                     selectedProjectId,
                   );
 
-                  await ref
-                      .read(flashcardActionsProvider)
-                      .save(
-                        FlashcardEntity(
-                          id: card?.id ?? uuid.v4(),
-                          userId: userId,
-                          deckName: deck,
-                          question: question,
-                          answer: answer,
-                          trackId: selectedTrack?.track.id,
-                          moduleId: selectedModule?.id,
-                          projectId: selectedProject?.project.id,
-                          dueAt: card?.dueAt ?? now,
-                          lastReviewedAt: card?.lastReviewedAt,
-                          reviewCount: card?.reviewCount ?? 0,
-                          correctStreak: card?.correctStreak ?? 0,
-                          easeFactor: card?.easeFactor ?? 2.3,
-                          intervalDays: card?.intervalDays ?? 0,
-                          createdAt: card?.createdAt ?? now,
-                          updatedAt: now,
-                        ),
+                  try {
+                    await ref
+                        .read(flashcardActionsProvider)
+                        .save(
+                          FlashcardEntity(
+                            id: card?.id ?? uuid.v4(),
+                            userId: userId,
+                            deckName: deck,
+                            question: question,
+                            answer: answer,
+                            trackId: selectedTrack?.track.id,
+                            moduleId: selectedModule?.id,
+                            projectId: selectedProject?.project.id,
+                            dueAt: card?.dueAt ?? now,
+                            lastReviewedAt: card?.lastReviewedAt,
+                            reviewCount: card?.reviewCount ?? 0,
+                            correctStreak: card?.correctStreak ?? 0,
+                            easeFactor: card?.easeFactor ?? 2.3,
+                            intervalDays: card?.intervalDays ?? 0,
+                            createdAt: card?.createdAt ?? now,
+                            updatedAt: now,
+                          ),
+                        );
+                  } on BillingAccessException catch (error) {
+                    if (dialogContext.mounted) {
+                      showBillingUpgradeModal(
+                        dialogContext,
+                        ref,
+                        decision: error.decision,
                       );
+                    }
+                    return;
+                  }
                   if (!dialogContext.mounted) return;
                   Navigator.of(dialogContext).pop();
                 },

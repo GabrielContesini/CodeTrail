@@ -1,0 +1,14 @@
+[functions.billing-create-checkout]
+verify_jwt = false
+
+[functions.billing-create-portal-session]
+verify_jwt = false
+
+[functions.billing-cancel-subscription]
+verify_jwt = false
+
+[functions.billing-sync-subscription]
+verify_jwt = false
+
+[functions.billing-webhook]
+verify_jwt = false

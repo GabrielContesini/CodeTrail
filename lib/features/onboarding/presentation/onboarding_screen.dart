@@ -115,9 +115,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               children: [
                                 Text(
                                   preview.headline,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleLarge
+                                  style: Theme.of(context).textTheme.titleLarge
                                       ?.copyWith(fontWeight: FontWeight.w700),
                                 ),
                                 const SizedBox(height: 10),
@@ -140,26 +138,31 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                   ],
                                 ),
                                 const SizedBox(height: 12),
-                                ...preview.milestones.take(2).map(
-                                  (item) => Padding(
-                                    padding: const EdgeInsets.only(bottom: 6),
-                                    child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        const Padding(
-                                          padding: EdgeInsets.only(top: 4),
-                                          child: Icon(
-                                            Icons.check_circle_outline_rounded,
-                                            size: 18,
-                                          ),
+                                ...preview.milestones
+                                    .take(2)
+                                    .map(
+                                      (item) => Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 6,
                                         ),
-                                        const SizedBox(width: 8),
-                                        Expanded(child: Text(item)),
-                                      ],
+                                        child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Padding(
+                                              padding: EdgeInsets.only(top: 4),
+                                              child: Icon(
+                                                Icons
+                                                    .check_circle_outline_rounded,
+                                                size: 18,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Expanded(child: Text(item)),
+                                          ],
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
                               ],
                             ),
                           ),

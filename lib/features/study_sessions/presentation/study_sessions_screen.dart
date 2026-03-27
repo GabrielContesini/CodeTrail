@@ -282,7 +282,9 @@ Future<void> _showSessionDialog(
           );
 
           return AlertDialog(
-            title: Text(initial == null ? 'Nova sessão manual' : 'Editar sessão'),
+            title: Text(
+              initial == null ? 'Nova sessão manual' : 'Editar sessão',
+            ),
             content: SizedBox(
               width: 560,
               child: SingleChildScrollView(
@@ -335,7 +337,8 @@ Future<void> _showSessionDialog(
                             ),
                           )
                           .toList(),
-                      onChanged: (value) => setState(() => skillId = value ?? ''),
+                      onChanged: (value) =>
+                          setState(() => skillId = value ?? ''),
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
@@ -373,7 +376,9 @@ Future<void> _showSessionDialog(
                           firstDate: DateTime.now().subtract(
                             const Duration(days: 365),
                           ),
-                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                          lastDate: DateTime.now().add(
+                            const Duration(days: 365),
+                          ),
                         );
                         if (date == null || !dialogContext.mounted) {
                           return;
@@ -445,9 +450,13 @@ Future<void> _showSessionDialog(
 
                   final now = DateTime.now().toUtc();
                   final startUtc = startedAt.toUtc();
-                  final endUtc = startUtc.add(Duration(minutes: durationMinutes));
+                  final endUtc = startUtc.add(
+                    Duration(minutes: durationMinutes),
+                  );
 
-                  await ref.read(studySessionActionsProvider).save(
+                  await ref
+                      .read(studySessionActionsProvider)
+                      .save(
                         StudySessionEntity(
                           id: initial?.id ?? uuid.v4(),
                           userId: userId,
@@ -467,9 +476,7 @@ Future<void> _showSessionDialog(
                   if (dialogContext.mounted) {
                     Navigator.of(dialogContext).pop();
                     context.showAppSnackBar(
-                      initial == null
-                          ? 'Sessão criada.'
-                          : 'Sessão atualizada.',
+                      initial == null ? 'Sessão criada.' : 'Sessão atualizada.',
                     );
                   }
                 },

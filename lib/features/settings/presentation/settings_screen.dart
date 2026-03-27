@@ -12,6 +12,9 @@ import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/page_frame.dart';
 import '../../../shared/widgets/sync_status_card.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../billing/application/billing_controller.dart';
+import '../../billing/presentation/widgets/billing_plan_badge.dart';
+import '../../billing/presentation/widgets/billing_trial_banner.dart';
 import '../../tracks/application/tracks_controller.dart';
 import '../application/settings_controller.dart';
 import 'widgets/settings_common.dart';
@@ -27,6 +30,7 @@ class SettingsScreen extends ConsumerWidget {
     final tracksAsync = ref.watch(trackBlueprintsProvider);
     final session = ref.watch(authSessionProvider).asData?.value;
     final userId = ref.watch(currentUserIdProvider);
+    final billingSnapshot = ref.watch(currentBillingSnapshotProvider);
 
     final hasError =
         settingsAsync.hasError ||
@@ -119,7 +123,15 @@ class SettingsScreen extends ConsumerWidget {
                     notificationsLabel: (settings?.notificationsEnabled ?? true)
                         ? 'Alertas ativos'
                         : 'Alertas pausados',
-                    onEditAccount: () => context.push(AppRoutes.settingsAccount),
+                    onEditAccount: () =>
+                        context.push(AppRoutes.settingsAccount),
+                  ),
+                  const SizedBox(height: 14),
+                  BillingTrialBanner(
+                    snapshot: billingSnapshot,
+                    onPrimaryAction: () =>
+                        context.push(AppRoutes.settingsBilling),
+                    primaryLabel: 'Plano e cobrança',
                   ),
                   const SizedBox(height: 14),
                   SyncStatusCard(
@@ -141,14 +153,22 @@ class SettingsScreen extends ConsumerWidget {
                 children: [
                   SettingsSectionCard(
                     title: 'Sua conta',
-                    subtitle:
-                        'Ajuste identidade, planejamento e segurança.',
+                    subtitle: 'Ajuste identidade, planejamento e segurança.',
                     children: [
+                      SettingsActionTile(
+                        icon: Icons.workspace_premium_outlined,
+                        title: 'Plano e cobrança',
+                        subtitle:
+                            'Plano ${billingSnapshot.currentPlanCode.name.toUpperCase()} • ${billingSnapshot.isTrialing ? 'trial ativo' : 'gerenciar assinatura'}',
+                        onTap: () => context.push(AppRoutes.settingsBilling),
+                        trailing: BillingPlanBadge(
+                          planCode: billingSnapshot.currentPlanCode,
+                        ),
+                      ),
                       SettingsActionTile(
                         icon: Icons.person_outline_rounded,
                         title: 'Conta',
-                        subtitle:
-                            'Nome, e-mail, área, nível e trilha ativa.',
+                        subtitle: 'Nome, e-mail, área, nível e trilha ativa.',
                         onTap: () => context.push(AppRoutes.settingsAccount),
                       ),
                       SettingsActionTile(
@@ -159,8 +179,8 @@ class SettingsScreen extends ConsumerWidget {
                             : goal.primaryGoal,
                         onTap: goal == null
                             ? () => context.showAppSnackBar(
-                                  'Conclua o onboarding para editar a meta.',
-                                )
+                                'Conclua o onboarding para editar a meta.',
+                              )
                             : () => _showGoalSheet(context, ref, goal),
                       ),
                       SettingsActionTile(
@@ -194,8 +214,7 @@ class SettingsScreen extends ConsumerWidget {
                       SettingsActionTile(
                         icon: Icons.language_rounded,
                         title: 'Idioma',
-                        subtitle:
-                            'Português (Brasil) como padrão desta build.',
+                        subtitle: 'Português (Brasil) como padrão desta build.',
                         onTap: () => _showLanguageSheet(context),
                       ),
                       SettingsActionTile(
@@ -285,7 +304,8 @@ Future<void> _showGoalSheet(
                       DropdownMenuItem(value: item, child: Text(item.label)),
                 )
                 .toList(),
-            onChanged: (value) => setState(() => focusType = value ?? focusType),
+            onChanged: (value) =>
+                setState(() => focusType = value ?? focusType),
           ),
           const SizedBox(height: 12),
           Row(
@@ -310,7 +330,9 @@ Future<void> _showGoalSheet(
               Expanded(
                 child: DropdownButtonFormField<int>(
                   initialValue: daysPerWeek,
-                  decoration: const InputDecoration(labelText: 'Dias por semana'),
+                  decoration: const InputDecoration(
+                    labelText: 'Dias por semana',
+                  ),
                   items: List.generate(7, (index) => index + 1)
                       .map(
                         (value) => DropdownMenuItem(
@@ -332,21 +354,21 @@ Future<void> _showGoalSheet(
               onPressed: () async {
                 final nextObjective = objectiveController.text.trim();
                 if (nextObjective.isEmpty) {
-                  sheetContext.showAppSnackBar(
-                    'Informe o objetivo principal.',
-                  );
+                  sheetContext.showAppSnackBar('Informe o objetivo principal.');
                   return;
                 }
 
-                await ref.read(appSettingsProvider.notifier).saveGoal(
-                  goal.copyWith(
-                    primaryGoal: nextObjective,
-                    focusType: focusType,
-                    hoursPerDay: hoursPerDay,
-                    daysPerWeek: daysPerWeek,
-                    updatedAt: DateTime.now().toUtc(),
-                  ),
-                );
+                await ref
+                    .read(appSettingsProvider.notifier)
+                    .saveGoal(
+                      goal.copyWith(
+                        primaryGoal: nextObjective,
+                        focusType: focusType,
+                        hoursPerDay: hoursPerDay,
+                        daysPerWeek: daysPerWeek,
+                        updatedAt: DateTime.now().toUtc(),
+                      ),
+                    );
                 if (sheetContext.mounted) {
                   Navigator.of(sheetContext).pop();
                   context.showAppSnackBar('Meta atualizada.');
@@ -399,7 +421,8 @@ Future<void> _showNotificationSheet(
                 )
                 .toList(),
             onChanged: enabled
-                ? (value) => setState(() => reminderHour = value ?? reminderHour)
+                ? (value) =>
+                      setState(() => reminderHour = value ?? reminderHour)
                 : null,
           ),
           const SizedBox(height: 18),
@@ -414,7 +437,9 @@ Future<void> _showNotificationSheet(
                 }
                 if (sheetContext.mounted) {
                   Navigator.of(sheetContext).pop();
-                  context.showAppSnackBar('Preferências de alerta atualizadas.');
+                  context.showAppSnackBar(
+                    'Preferências de alerta atualizadas.',
+                  );
                 }
               },
               child: const Text('Salvar preferências'),

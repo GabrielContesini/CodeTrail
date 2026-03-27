@@ -137,8 +137,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                                 ),
                                 suffixIcon: IconButton(
                                   onPressed: () => setState(
-                                    () =>
-                                        _obscurePassword = !_obscurePassword,
+                                    () => _obscurePassword = !_obscurePassword,
                                   ),
                                   icon: Icon(
                                     _obscurePassword
@@ -190,7 +189,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                                 onPressed: authState.isLoading
                                     ? null
                                     : () async {
-                                        if (!_formKey.currentState!.validate()) {
+                                        if (!_formKey.currentState!
+                                            .validate()) {
                                           return;
                                         }
                                         final result = await ref
@@ -202,38 +202,35 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                                                   .trim(),
                                               password:
                                                   _passwordController.text,
-                                              fullName:
-                                                  _nameController.text.trim(),
+                                              fullName: _nameController.text
+                                                  .trim(),
                                             );
                                         if (!context.mounted ||
                                             result == null) {
                                           return;
                                         }
-                                        if (result
-                                            .requiresEmailConfirmation) {
+                                        if (result.requiresEmailConfirmation) {
                                           await showDialog<void>(
                                             context: context,
-                                            builder: (dialogContext) =>
-                                                AlertDialog(
-                                                  title: const Text(
-                                                    'Confirme seu e-mail',
+                                            builder: (dialogContext) => AlertDialog(
+                                              title: const Text(
+                                                'Confirme seu e-mail',
+                                              ),
+                                              content: Text(
+                                                'Enviamos um e-mail para ${_emailController.text.trim()}. '
+                                                'Confirme sua conta antes de fazer login.',
+                                              ),
+                                              actions: [
+                                                FilledButton(
+                                                  onPressed: () => Navigator.of(
+                                                    dialogContext,
+                                                  ).pop(),
+                                                  child: const Text(
+                                                    'Ok, vou confirmar',
                                                   ),
-                                                  content: Text(
-                                                    'Enviamos um e-mail para ${_emailController.text.trim()}. '
-                                                    'Confirme sua conta antes de fazer login.',
-                                                  ),
-                                                  actions: [
-                                                    FilledButton(
-                                                      onPressed: () =>
-                                                          Navigator.of(
-                                                            dialogContext,
-                                                          ).pop(),
-                                                      child: const Text(
-                                                        'Ok, vou confirmar',
-                                                      ),
-                                                    ),
-                                                  ],
                                                 ),
+                                              ],
+                                            ),
                                           );
                                           if (context.mounted) {
                                             context.go(AppRoutes.login);

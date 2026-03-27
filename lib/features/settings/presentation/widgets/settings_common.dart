@@ -258,6 +258,7 @@ class SettingsActionTile extends StatelessWidget {
     required this.subtitle,
     required this.onTap,
     this.destructive = false,
+    this.trailing,
   });
 
   final IconData icon;
@@ -265,6 +266,7 @@ class SettingsActionTile extends StatelessWidget {
   final String subtitle;
   final VoidCallback onTap;
   final bool destructive;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -322,10 +324,11 @@ class SettingsActionTile extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: accent.withValues(alpha: 0.9),
-              ),
+              trailing ??
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: accent.withValues(alpha: 0.9),
+                  ),
             ],
           ),
         ),
@@ -335,11 +338,7 @@ class SettingsActionTile extends StatelessWidget {
 }
 
 class SettingsMetaChip extends StatelessWidget {
-  const SettingsMetaChip({
-    super.key,
-    required this.icon,
-    required this.label,
-  });
+  const SettingsMetaChip({super.key, required this.icon, required this.label});
 
   final IconData icon;
   final String label;

@@ -16,16 +16,17 @@ final syncOverviewProvider = StreamProvider<SyncOverview>((ref) {
     yield* connectivity.connectivityChanges();
   }
 
-  return Rx.combineLatest3<SyncQueueDiagnostics, bool, SyncRuntimeSnapshot,
-      SyncOverview>(
+  return Rx.combineLatest3<
+    SyncQueueDiagnostics,
+    bool,
+    SyncRuntimeSnapshot,
+    SyncOverview
+  >(
     database.watchSyncQueueDiagnostics(),
     onlineStream(),
     syncService.watchRuntimeState(),
-    (queue, isOnline, runtime) => SyncOverview(
-      isOnline: isOnline,
-      queue: queue,
-      runtime: runtime,
-    ),
+    (queue, isOnline, runtime) =>
+        SyncOverview(isOnline: isOnline, queue: queue, runtime: runtime),
   );
 });
 

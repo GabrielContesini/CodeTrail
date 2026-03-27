@@ -28,8 +28,8 @@ class StudyPlanGenerator {
     final confidenceLabel = loadFactor >= 1.4
         ? 'Ritmo confortável'
         : loadFactor >= 1.0
-            ? 'Ritmo sustentável'
-            : 'Ritmo apertado';
+        ? 'Ritmo sustentável'
+        : 'Ritmo apertado';
 
     final milestones = <String>[
       if (blueprint != null && blueprint.modules.isNotEmpty)

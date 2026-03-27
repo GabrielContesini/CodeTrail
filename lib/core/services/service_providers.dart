@@ -3,11 +3,16 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/local/app_database.dart';
+import '../../data/remote/billing_remote_data_source.dart';
 import '../../data/remote/supabase_remote_data_source.dart';
 import '../../data/repositories/auth_repository_impl.dart';
+import '../../data/repositories/billing_repository_impl.dart';
 import '../../data/repositories/study_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../domain/repositories/billing_repository.dart';
 import '../../domain/repositories/study_repository.dart';
+import 'billing_entitlement_service.dart';
+import 'billing_snapshot_cache_service.dart';
 import 'connectivity_service.dart';
 import 'github_service.dart';
 import 'notification_service.dart';
@@ -27,6 +32,11 @@ final appDatabaseProvider = Provider<AppDatabase>((ref) {
 final secureStorageProvider = Provider<FlutterSecureStorage>(
   (_) => const FlutterSecureStorage(),
 );
+
+final billingSnapshotCacheServiceProvider =
+    Provider<BillingSnapshotCacheService>(
+      (ref) => BillingSnapshotCacheService(ref.watch(secureStorageProvider)),
+    );
 
 final sessionPreferencesProvider = Provider<SessionPreferencesService>((ref) {
   return SessionPreferencesService(ref.watch(secureStorageProvider));
@@ -56,10 +66,25 @@ final remoteDataSourceProvider = Provider<SupabaseRemoteDataSource>(
   (_) => const SupabaseRemoteDataSource(),
 );
 
+final billingRemoteDataSourceProvider = Provider<BillingRemoteDataSource>(
+  (_) => const BillingRemoteDataSource(),
+);
+
 final seedServiceProvider = Provider<SeedService>((_) => const SeedService());
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl();
+});
+
+final billingEntitlementServiceProvider = Provider<BillingEntitlementService>(
+  (_) => const BillingEntitlementService(),
+);
+
+final billingRepositoryProvider = Provider<BillingRepository>((ref) {
+  return BillingRepositoryImpl(
+    remoteDataSource: ref.watch(billingRemoteDataSourceProvider),
+    cacheService: ref.watch(billingSnapshotCacheServiceProvider),
+  );
 });
 
 final syncServiceProvider = Provider<SyncService>((ref) {
@@ -84,6 +109,7 @@ final studyRepositoryProvider = Provider<StudyRepository>((ref) {
 final startupCoordinatorProvider = Provider<StartupCoordinator>((ref) {
   return StartupCoordinator(
     authRepository: ref.watch(authRepositoryProvider),
+    billingRepository: ref.watch(billingRepositoryProvider),
     studyRepository: ref.watch(studyRepositoryProvider),
   );
 });

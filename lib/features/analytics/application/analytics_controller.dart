@@ -110,7 +110,10 @@ final analyticsSummaryProvider = StreamProvider<AnalyticsSummary>((ref) {
           (byType[SessionType.practice] ?? 0) +
           (byType[SessionType.project] ?? 0) +
           (byType[SessionType.exercises] ?? 0);
-      final totalHours = byType.values.fold<double>(0, (sum, value) => sum + value);
+      final totalHours = byType.values.fold<double>(
+        0,
+        (sum, value) => sum + value,
+      );
       final focusBalancePercent = totalHours == 0
           ? 0.0
           : (handsOnHours / totalHours) * 100;

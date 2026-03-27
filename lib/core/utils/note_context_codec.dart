@@ -29,7 +29,8 @@ class NoteContextLink {
     if (_hasValue(projectLabel)) projectLabel!.trim(),
   ];
 
-  static bool _hasValue(String? value) => value != null && value.trim().isNotEmpty;
+  static bool _hasValue(String? value) =>
+      value != null && value.trim().isNotEmpty;
 }
 
 class NoteContentDocument {
@@ -41,10 +42,7 @@ class NoteContentDocument {
   final String body;
   final NoteContextLink context;
 
-  String get searchableText => [
-    body,
-    ...context.labels,
-  ].join(' ').trim();
+  String get searchableText => [body, ...context.labels].join(' ').trim();
 }
 
 class NoteContextCodec {
@@ -124,5 +122,6 @@ class NoteContextCodec {
     ].join('\n');
   }
 
-  static bool _hasValue(String? value) => value != null && value.trim().isNotEmpty;
+  static bool _hasValue(String? value) =>
+      value != null && value.trim().isNotEmpty;
 }

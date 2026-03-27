@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/utils/layout_utils.dart';
+import '../../../domain/entities/billing_entities.dart';
 import '../../../domain/entities/app_entities.dart';
 import '../../../shared/extensions/context_extensions.dart';
 import '../../../shared/models/app_enums.dart';
@@ -16,6 +17,9 @@ import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/async_value_view.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../billing/application/billing_access_exception.dart';
+import '../../billing/presentation/widgets/billing_feature_gate.dart';
+import '../../billing/presentation/widgets/billing_upgrade_modal.dart';
 import '../../projects/application/projects_controller.dart';
 import '../../tracks/application/tracks_controller.dart';
 import '../application/mind_map_codec.dart';
@@ -87,188 +91,194 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
     final projectBundles =
         ref.watch(projectsProvider).asData?.value ?? const <ProjectBundle>[];
 
-    final content = AsyncValueView(
-      value: mindMapsAsync,
-      loadingMessage: 'Preparando boards e canvas...',
-      data: (mindMaps) {
-        final trackNameById = {
-          for (final item in trackBlueprints) item.track.id: item.track.name,
-        };
-        final moduleNameById = {
-          for (final item in trackBlueprints)
-            for (final module in item.modules) module.id: module.title,
-        };
-        final projectNameById = {
-          for (final item in projectBundles)
-            item.project.id: item.project.title,
-        };
+    final content = BillingFeatureGate(
+      featureKey: BillingFeatureKey.mindMapsAccess,
+      lockedTitle: 'Mind maps premium bloqueados',
+      lockedSubtitle:
+          'Faça upgrade para abrir o canvas imersivo, criar boards e editar mapas mentais completos.',
+      child: AsyncValueView(
+        value: mindMapsAsync,
+        loadingMessage: 'Preparando boards e canvas...',
+        data: (mindMaps) {
+          final trackNameById = {
+            for (final item in trackBlueprints) item.track.id: item.track.name,
+          };
+          final moduleNameById = {
+            for (final item in trackBlueprints)
+              for (final module in item.modules) module.id: module.title,
+          };
+          final projectNameById = {
+            for (final item in projectBundles)
+              item.project.id: item.project.title,
+          };
 
-        if (mindMaps.isEmpty) {
-          return EmptyState(
-            title: 'Nenhum mapa mental criado ainda',
-            subtitle:
-                'Abra um primeiro board para ligar conceitos, módulos e dependências da sua trilha.',
-            action: FilledButton.icon(
-              onPressed: () => context.push(AppRoutes.mindMapNew),
-              icon: const Icon(Icons.account_tree_outlined),
-              label: const Text('Criar primeiro mapa'),
-            ),
-          );
-        }
-
-        final folders = <String>{
-          'Geral',
-          ...mindMaps.map((item) => item.folderName),
-        }..removeWhere((item) => item.trim().isEmpty);
-        final folderOptions = ['Todas', ...(folders.toList()..sort())];
-        if (!folderOptions.contains(_selectedFolder)) {
-          _selectedFolder = 'Todas';
-        }
-
-        final normalizedQuery = _searchQuery.trim().toLowerCase();
-        final folderFiltered = _selectedFolder == 'Todas'
-            ? mindMaps
-            : mindMaps
-                  .where((item) => item.folderName == _selectedFolder)
-                  .toList();
-        final filteredMaps = normalizedQuery.isEmpty
-            ? folderFiltered
-            : folderFiltered.where((item) {
-                final haystack =
-                    '${item.title} ${item.folderName} ${trackNameById[item.trackId] ?? ''} ${moduleNameById[item.moduleId] ?? ''} ${projectNameById[item.projectId] ?? ''}'
-                        .toLowerCase();
-                return haystack.contains(normalizedQuery);
-              }).toList();
-
-        if (!_initialRouteSelectionApplied) {
-          _selectedMapId = widget.createOnOpen
-              ? null
-              : (widget.initialMindMapId ?? _selectedMapId);
-          _initialRouteSelectionApplied = true;
-        }
-
-        final sourceMaps = widget.immersive ? mindMaps : filteredMaps;
-        final allowFallbackSelection =
-            !widget.immersive ||
-            (!widget.createOnOpen && widget.initialMindMapId == null);
-
-        if (_selectedMapId == null ||
-            sourceMaps.every((item) => item.id != _selectedMapId)) {
-          _selectedMapId = allowFallbackSelection && sourceMaps.isNotEmpty
-              ? sourceMaps.first.id
-              : _selectedMapId;
-        }
-
-        MindMapEntity? selectedMap;
-        for (final item in sourceMaps) {
-          if (item.id == _selectedMapId) {
-            selectedMap = item;
-            break;
-          }
-        }
-
-        if (widget.immersive &&
-            widget.createOnOpen &&
-            !_initialCreationPromptScheduled &&
-            selectedMap == null) {
-          _initialCreationPromptScheduled = true;
-          WidgetsBinding.instance.addPostFrameCallback((_) async {
-            final screenContext = context;
-            if (!screenContext.mounted) return;
-            final created = await _showMindMapDialog(
-              screenContext,
-              trackBlueprints: trackBlueprints,
-              projectBundles: projectBundles,
+          if (mindMaps.isEmpty) {
+            return EmptyState(
+              title: 'Nenhum mapa mental criado ainda',
+              subtitle:
+                  'Abra um primeiro board para ligar conceitos, módulos e dependências da sua trilha.',
+              action: FilledButton.icon(
+                onPressed: () => context.push(AppRoutes.mindMapNew),
+                icon: const Icon(Icons.account_tree_outlined),
+                label: const Text('Criar primeiro mapa'),
+              ),
             );
-            if (!screenContext.mounted) return;
-            if (created == null) {
-              _leaveEditor();
-              return;
-            }
-            screenContext.go('${AppRoutes.mindMapEditor}/${created.id}');
-          });
-        }
+          }
 
-        if (_loadedMapId != selectedMap?.id) {
-          _loadedMapId = selectedMap?.id;
-          _draftDocument = selectedMap == null
-              ? null
-              : MindMapCodec.decode(
-                  selectedMap.contentJson,
-                  fallbackLabel: selectedMap.title,
-                );
-          _selectedNodeId = _draftDocument?.nodes.isNotEmpty == true
-              ? _draftDocument!.nodes.first.id
-              : null;
-          _showInspectorPane = false;
-          _connectMode = false;
-          _connectionSourceNodeId = null;
-          _transformController.value = Matrix4.identity();
-          final documentToFit = _draftDocument;
-          if (documentToFit != null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted) return;
-              _fitContentToViewport(documentToFit);
+          final folders = <String>{
+            'Geral',
+            ...mindMaps.map((item) => item.folderName),
+          }..removeWhere((item) => item.trim().isEmpty);
+          final folderOptions = ['Todas', ...(folders.toList()..sort())];
+          if (!folderOptions.contains(_selectedFolder)) {
+            _selectedFolder = 'Todas';
+          }
+
+          final normalizedQuery = _searchQuery.trim().toLowerCase();
+          final folderFiltered = _selectedFolder == 'Todas'
+              ? mindMaps
+              : mindMaps
+                    .where((item) => item.folderName == _selectedFolder)
+                    .toList();
+          final filteredMaps = normalizedQuery.isEmpty
+              ? folderFiltered
+              : folderFiltered.where((item) {
+                  final haystack =
+                      '${item.title} ${item.folderName} ${trackNameById[item.trackId] ?? ''} ${moduleNameById[item.moduleId] ?? ''} ${projectNameById[item.projectId] ?? ''}'
+                          .toLowerCase();
+                  return haystack.contains(normalizedQuery);
+                }).toList();
+
+          if (!_initialRouteSelectionApplied) {
+            _selectedMapId = widget.createOnOpen
+                ? null
+                : (widget.initialMindMapId ?? _selectedMapId);
+            _initialRouteSelectionApplied = true;
+          }
+
+          final sourceMaps = widget.immersive ? mindMaps : filteredMaps;
+          final allowFallbackSelection =
+              !widget.immersive ||
+              (!widget.createOnOpen && widget.initialMindMapId == null);
+
+          if (_selectedMapId == null ||
+              sourceMaps.every((item) => item.id != _selectedMapId)) {
+            _selectedMapId = allowFallbackSelection && sourceMaps.isNotEmpty
+                ? sourceMaps.first.id
+                : _selectedMapId;
+          }
+
+          MindMapEntity? selectedMap;
+          for (final item in sourceMaps) {
+            if (item.id == _selectedMapId) {
+              selectedMap = item;
+              break;
+            }
+          }
+
+          if (widget.immersive &&
+              widget.createOnOpen &&
+              !_initialCreationPromptScheduled &&
+              selectedMap == null) {
+            _initialCreationPromptScheduled = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) async {
+              final screenContext = context;
+              if (!screenContext.mounted) return;
+              final created = await _showMindMapDialog(
+                screenContext,
+                trackBlueprints: trackBlueprints,
+                projectBundles: projectBundles,
+              );
+              if (!screenContext.mounted) return;
+              if (created == null) {
+                _leaveEditor();
+                return;
+              }
+              screenContext.go('${AppRoutes.mindMapEditor}/${created.id}');
             });
           }
-        }
 
-        final selectedDocument = selectedMap == null ? null : _draftDocument;
-        final selectedNode = selectedDocument == null
-            ? null
-            : (_findNode(selectedDocument, _selectedNodeId) ??
-                  (selectedDocument.nodes.isEmpty
-                      ? null
-                      : selectedDocument.nodes.first));
-
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            if (!widget.immersive) {
-              return _buildLibraryHome(
-                context,
-                constraints: constraints,
-                maps: filteredMaps,
-                folderOptions: folderOptions,
-                trackNameById: trackNameById,
-                moduleNameById: moduleNameById,
-                projectNameById: projectNameById,
-                selectedMap: selectedMap,
-              );
+          if (_loadedMapId != selectedMap?.id) {
+            _loadedMapId = selectedMap?.id;
+            _draftDocument = selectedMap == null
+                ? null
+                : MindMapCodec.decode(
+                    selectedMap.contentJson,
+                    fallbackLabel: selectedMap.title,
+                  );
+            _selectedNodeId = _draftDocument?.nodes.isNotEmpty == true
+                ? _draftDocument!.nodes.first.id
+                : null;
+            _showInspectorPane = false;
+            _connectMode = false;
+            _connectionSourceNodeId = null;
+            _transformController.value = Matrix4.identity();
+            final documentToFit = _draftDocument;
+            if (documentToFit != null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                _fitContentToViewport(documentToFit);
+              });
             }
+          }
 
-            if (selectedMap == null || selectedDocument == null) {
-              return AppCard(
-                child: EmptyState(
-                  title: widget.createOnOpen
-                      ? 'Preparando novo canvas'
-                      : 'Mapa não encontrado',
-                  subtitle: widget.createOnOpen
-                      ? 'Abrindo o editor dedicado para configurar seu novo mind map.'
-                      : 'Esse mapa não está mais disponível. Volte para a biblioteca e abra outro canvas.',
-                  action: OutlinedButton.icon(
-                    onPressed: _leaveEditor,
-                    icon: const Icon(Icons.arrow_back_rounded),
-                    label: const Text('Voltar para biblioteca'),
+          final selectedDocument = selectedMap == null ? null : _draftDocument;
+          final selectedNode = selectedDocument == null
+              ? null
+              : (_findNode(selectedDocument, _selectedNodeId) ??
+                    (selectedDocument.nodes.isEmpty
+                        ? null
+                        : selectedDocument.nodes.first));
+
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              if (!widget.immersive) {
+                return _buildLibraryHome(
+                  context,
+                  constraints: constraints,
+                  maps: filteredMaps,
+                  folderOptions: folderOptions,
+                  trackNameById: trackNameById,
+                  moduleNameById: moduleNameById,
+                  projectNameById: projectNameById,
+                  selectedMap: selectedMap,
+                );
+              }
+
+              if (selectedMap == null || selectedDocument == null) {
+                return AppCard(
+                  child: EmptyState(
+                    title: widget.createOnOpen
+                        ? 'Preparando novo canvas'
+                        : 'Mapa não encontrado',
+                    subtitle: widget.createOnOpen
+                        ? 'Abrindo o editor dedicado para configurar seu novo mind map.'
+                        : 'Esse mapa não está mais disponível. Volte para a biblioteca e abra outro canvas.',
+                    action: OutlinedButton.icon(
+                      onPressed: _leaveEditor,
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      label: const Text('Voltar para biblioteca'),
+                    ),
                   ),
-                ),
-              );
-            }
+                );
+              }
 
-            return _buildWorkspace(
-              context,
-              selectedMap,
-              selectedDocument,
-              selectedNode,
-              trackNameById,
-              moduleNameById,
-              projectNameById,
-              trackBlueprints,
-              projectBundles,
-              showLibraryToggle: false,
-            );
-          },
-        );
-      },
+              return _buildWorkspace(
+                context,
+                selectedMap,
+                selectedDocument,
+                selectedNode,
+                trackNameById,
+                moduleNameById,
+                projectNameById,
+                trackBlueprints,
+                projectBundles,
+                showLibraryToggle: false,
+              );
+            },
+          );
+        },
+      ),
     );
 
     return AppCard(
@@ -1800,7 +1810,14 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
       contentJson: MindMapCodec.encode(document),
       updatedAt: DateTime.now().toUtc(),
     );
-    await ref.read(mindMapActionsProvider).save(updatedMap);
+    try {
+      await ref.read(mindMapActionsProvider).save(updatedMap);
+    } on BillingAccessException catch (error) {
+      if (mounted) {
+        await showBillingUpgradeModal(context, ref, decision: error.decision);
+      }
+      return;
+    }
     if (!mounted || successMessage == null) return;
     context.showAppSnackBar(successMessage);
   }
@@ -2045,7 +2062,18 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
                       updatedAt: now,
                     );
 
-                    await ref.read(mindMapActionsProvider).save(updated);
+                    try {
+                      await ref.read(mindMapActionsProvider).save(updated);
+                    } on BillingAccessException catch (error) {
+                      if (dialogContext.mounted) {
+                        await showBillingUpgradeModal(
+                          dialogContext,
+                          ref,
+                          decision: error.decision,
+                        );
+                      }
+                      return;
+                    }
                     if (!dialogContext.mounted) return;
 
                     setState(() {

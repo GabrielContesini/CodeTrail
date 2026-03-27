@@ -171,8 +171,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ),
                                 suffixIcon: IconButton(
                                   onPressed: () => setState(
-                                    () =>
-                                        _obscurePassword = !_obscurePassword,
+                                    () => _obscurePassword = !_obscurePassword,
                                   ),
                                   icon: Icon(
                                     _obscurePassword
@@ -257,8 +256,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                           }
                                           final success = await ref
                                               .read(
-                                                authControllerProvider
-                                                    .notifier,
+                                                authControllerProvider.notifier,
                                               )
                                               .signIn(
                                                 email: _emailController.text
@@ -365,10 +363,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 }
 
 class _InlineFeedbackCard extends StatelessWidget {
-  const _InlineFeedbackCard({
-    required this.message,
-    required this.isError,
-  });
+  const _InlineFeedbackCard({required this.message, required this.isError});
 
   final String message;
   final bool isError;

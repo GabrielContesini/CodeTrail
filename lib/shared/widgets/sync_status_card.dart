@@ -139,7 +139,9 @@ class _SyncStatusContent extends StatelessWidget {
           runSpacing: 10,
           children: [
             _MetricPill(
-              icon: overview.isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded,
+              icon: overview.isOnline
+                  ? Icons.wifi_rounded
+                  : Icons.wifi_off_rounded,
               label: overview.isOnline ? 'Conectado' : 'Offline',
             ),
             _MetricPill(
@@ -193,7 +195,9 @@ class _SyncStatusContent extends StatelessWidget {
               icon: Icon(
                 isSubmitting ? Icons.sync_disabled_rounded : Icons.sync_rounded,
               ),
-              label: Text(isSubmitting ? 'Sincronizando...' : 'Sincronizar agora'),
+              label: Text(
+                isSubmitting ? 'Sincronizando...' : 'Sincronizar agora',
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(

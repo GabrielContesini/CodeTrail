@@ -5,11 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/services/service_providers.dart';
 import '../../../shared/models/app_view_models.dart';
 
-final sessionTemplatesProvider = AsyncNotifierProvider<
-    SessionTemplatesController,
-    List<StudySessionTemplate>>(
-  SessionTemplatesController.new,
-);
+final sessionTemplatesProvider =
+    AsyncNotifierProvider<
+      SessionTemplatesController,
+      List<StudySessionTemplate>
+    >(SessionTemplatesController.new);
 
 class SessionTemplatesController
     extends AsyncNotifier<List<StudySessionTemplate>> {

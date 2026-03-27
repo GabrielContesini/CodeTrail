@@ -30,9 +30,7 @@ class SessionTemplateService {
   }
 
   Future<void> saveTemplates(List<StudySessionTemplate> templates) {
-    final payload = jsonEncode(
-      templates.map((item) => item.toJson()).toList(),
-    );
+    final payload = jsonEncode(templates.map((item) => item.toJson()).toList());
     return _storage.write(key: _templatesKey, value: payload);
   }
 

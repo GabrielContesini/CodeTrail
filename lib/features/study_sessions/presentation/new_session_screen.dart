@@ -209,11 +209,8 @@ class _NewSessionScreenState extends ConsumerState<NewSessionScreen> {
                                     : _startedAt == null
                                     ? 'Pronto para começar'
                                     : 'Sessão pausada',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.labelLarge?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
+                                style: Theme.of(context).textTheme.labelLarge
+                                    ?.copyWith(fontWeight: FontWeight.w700),
                               ),
                             ),
                             const SizedBox(height: 18),
@@ -257,13 +254,17 @@ class _NewSessionScreenState extends ConsumerState<NewSessionScreen> {
                                   .map(
                                     (template) => InkWell(
                                       borderRadius: BorderRadius.circular(18),
-                                      onTap: () =>
-                                          _applyTemplate(template, selectedTrack),
+                                      onTap: () => _applyTemplate(
+                                        template,
+                                        selectedTrack,
+                                      ),
                                       child: Container(
                                         width: 220,
                                         padding: const EdgeInsets.all(14),
                                         decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(18),
+                                          borderRadius: BorderRadius.circular(
+                                            18,
+                                          ),
                                           border: Border.all(
                                             color: Theme.of(
                                               context,
@@ -606,7 +607,9 @@ Future<void> _showTemplateManagerDialog(
         actions: [
           TextButton(
             onPressed: () async {
-              await ref.read(sessionTemplatesProvider.notifier).resetTemplates();
+              await ref
+                  .read(sessionTemplatesProvider.notifier)
+                  .resetTemplates();
               if (dialogContext.mounted) {
                 Navigator.of(dialogContext).pop();
               }
@@ -676,8 +679,9 @@ Future<void> _showTemplateEditorDialog(
                     const SizedBox(height: 12),
                     DropdownButtonFormField<int>(
                       initialValue: productivity,
-                      decoration:
-                          const InputDecoration(labelText: 'Produtividade alvo'),
+                      decoration: const InputDecoration(
+                        labelText: 'Produtividade alvo',
+                      ),
                       items: List.generate(5, (index) => index + 1)
                           .map(
                             (item) => DropdownMenuItem(
@@ -739,7 +743,9 @@ Future<void> _showTemplateEditorDialog(
                     prefersCoreModule: prefersCoreModule,
                   );
                   final nextTemplates = templates
-                      .map((item) => item.id == template.id ? nextTemplate : item)
+                      .map(
+                        (item) => item.id == template.id ? nextTemplate : item,
+                      )
                       .toList();
                   await ref
                       .read(sessionTemplatesProvider.notifier)

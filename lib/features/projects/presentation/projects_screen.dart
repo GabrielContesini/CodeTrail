@@ -18,6 +18,8 @@ import '../../../shared/widgets/async_value_view.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/page_frame.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../billing/application/billing_access_exception.dart';
+import '../../billing/presentation/widgets/billing_upgrade_modal.dart';
 import '../application/projects_controller.dart';
 
 class ProjectsScreen extends ConsumerWidget {
@@ -211,9 +213,8 @@ class _ProjectSummaryCard extends StatelessWidget {
                           project.title,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w800),
                         ),
                         if (githubProject) ...[
                           const SizedBox(height: 6),
@@ -234,11 +235,7 @@ class _ProjectSummaryCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 10),
-              Text(
-                project.scope,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
+              Text(project.scope, maxLines: 2, overflow: TextOverflow.ellipsis),
               const SizedBox(height: 12),
               LinearProgressIndicator(value: project.progressPercent / 100),
               const SizedBox(height: 10),
@@ -311,10 +308,8 @@ class _ProjectDetailContent extends ConsumerWidget {
                 if (project.repositoryUrl != null &&
                     project.repositoryUrl!.isNotEmpty)
                   FilledButton.tonalIcon(
-                    onPressed: () => _openProjectUrl(
-                      context,
-                      project.repositoryUrl!,
-                    ),
+                    onPressed: () =>
+                        _openProjectUrl(context, project.repositoryUrl!),
                     icon: const Icon(Icons.open_in_new_rounded),
                     label: Text(
                       _isGitHubProject(project)
@@ -401,7 +396,9 @@ class _ProjectDetailContent extends ConsumerWidget {
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Theme.of(context).colorScheme.outline),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
                 ),
                 child: const Text(
                   'Nenhuma etapa cadastrada ainda. Adicione pequenos marcos para deixar o progresso visível.',
@@ -510,7 +507,9 @@ class _ProjectStepTile extends ConsumerWidget {
                   .saveStep(
                     step.copyWith(
                       isDone: value ?? false,
-                      completedAt: value == true ? DateTime.now().toUtc() : null,
+                      completedAt: value == true
+                          ? DateTime.now().toUtc()
+                          : null,
                       updatedAt: DateTime.now().toUtc(),
                     ),
                   );
@@ -734,6 +733,10 @@ class _ProjectCreationDialogState
       if (mounted) {
         Navigator.of(context).pop(true);
       }
+    } on BillingAccessException catch (error) {
+      if (mounted) {
+        await showBillingUpgradeModal(context, ref, decision: error.decision);
+      }
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -792,7 +795,14 @@ class _ProjectCreationDialogState
         );
       }).toList();
 
-      await ref.read(projectActionsProvider).saveProjects(projects);
+      try {
+        await ref.read(projectActionsProvider).saveProjects(projects);
+      } on BillingAccessException catch (error) {
+        if (mounted) {
+          await showBillingUpgradeModal(context, ref, decision: error.decision);
+        }
+        return;
+      }
       if (mounted) {
         Navigator.of(context).pop(true);
       }
@@ -1119,9 +1129,9 @@ Future<void> _showProjectStepDialog(
   BuildContext context,
   WidgetRef ref,
   ProjectEntity project,
-  int sortOrder,
-  {ProjectStepEntity? initialStep,}
-) async {
+  int sortOrder, {
+  ProjectStepEntity? initialStep,
+}) async {
   final titleController = TextEditingController(text: initialStep?.title ?? '');
   final descriptionController = TextEditingController(
     text: initialStep?.description ?? '',

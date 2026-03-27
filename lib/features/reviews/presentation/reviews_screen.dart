@@ -43,9 +43,7 @@ class ReviewsScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, _) => ListView(
           children: const [
-            AppCard(
-              child: Text('Não foi possível carregar as revisões.'),
-            ),
+            AppCard(child: Text('Não foi possível carregar as revisões.')),
           ],
         ),
         data: (reviews) {
@@ -93,8 +91,9 @@ class ReviewsScreen extends ConsumerWidget {
                           const Icon(Icons.check_circle_rounded)
                         else
                           FilledButton.tonal(
-                            onPressed: () =>
-                                ref.read(reviewActionsProvider).complete(review),
+                            onPressed: () => ref
+                                .read(reviewActionsProvider)
+                                .complete(review),
                             child: const Text('Concluir'),
                           ),
                       ],
@@ -120,8 +119,7 @@ class ReviewsScreen extends ConsumerWidget {
                         ),
                         const SizedBox(width: 10),
                         OutlinedButton.icon(
-                          onPressed: () =>
-                              _confirmDelete(context, ref, review),
+                          onPressed: () => _confirmDelete(context, ref, review),
                           icon: const Icon(Icons.delete_outline_rounded),
                           label: const Text('Excluir'),
                         ),
@@ -243,9 +241,7 @@ Future<void> _showReviewEditDialog(
                     const SizedBox(height: 12),
                     TextField(
                       controller: intervalController,
-                      decoration: const InputDecoration(
-                        labelText: 'Intervalo',
-                      ),
+                      decoration: const InputDecoration(labelText: 'Intervalo'),
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<ReviewStatus>(
@@ -323,7 +319,9 @@ Future<void> _showReviewEditDialog(
                   }
 
                   final now = DateTime.now().toUtc();
-                  await ref.read(reviewActionsProvider).save(
+                  await ref
+                      .read(reviewActionsProvider)
+                      .save(
                         initial.copyWith(
                           title: title,
                           intervalLabel: interval,
@@ -361,7 +359,9 @@ Future<void> _confirmDelete(
     builder: (dialogContext) {
       return AlertDialog(
         title: const Text('Excluir revisão'),
-        content: Text('Remover o item ${review.intervalLabel} de ${review.title}?'),
+        content: Text(
+          'Remover o item ${review.intervalLabel} de ${review.title}?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),

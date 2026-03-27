@@ -111,9 +111,7 @@ class _SettingsSyncScreenState extends ConsumerState<SettingsSyncScreen> {
           queueAsync.when(
             data: (items) {
               if (items.isEmpty) {
-                return const AppCard(
-                  child: _EmptyQueueState(),
-                );
+                return const AppCard(child: _EmptyQueueState());
               }
 
               return AppCard(
@@ -121,12 +119,14 @@ class _SettingsSyncScreenState extends ConsumerState<SettingsSyncScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ...items.take(30).map(
-                      (item) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _QueueItemTile(item: item),
-                      ),
-                    ),
+                    ...items
+                        .take(30)
+                        .map(
+                          (item) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _QueueItemTile(item: item),
+                          ),
+                        ),
                     if (items.length > 30)
                       Text(
                         'Mostrando os 30 itens mais recentes da fila.',

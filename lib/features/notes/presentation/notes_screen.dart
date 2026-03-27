@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/services/service_providers.dart';
 import '../../../core/utils/note_context_codec.dart';
+import '../../../domain/entities/billing_entities.dart';
 import '../../../domain/entities/app_entities.dart';
 import '../../../shared/extensions/context_extensions.dart';
 import '../../../shared/models/app_view_models.dart';
@@ -13,6 +15,9 @@ import '../../../shared/widgets/async_value_view.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/page_frame.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../billing/application/billing_access_exception.dart';
+import '../../billing/application/billing_controller.dart';
+import '../../billing/presentation/widgets/billing_upgrade_modal.dart';
 import '../../flashcards/application/flashcards_controller.dart';
 import '../../mind_maps/application/mind_maps_controller.dart';
 import '../../projects/application/projects_controller.dart';
@@ -34,11 +39,29 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   String? _selectedNoteId;
   String _searchQuery = '';
 
+  bool _ensureAiGenerationAccess(BuildContext context) {
+    final snapshot = ref.read(currentBillingSnapshotProvider);
+    final decision = ref
+        .read(billingEntitlementServiceProvider)
+        .checkFeatureAccess(
+          snapshot,
+          BillingFeatureKey.aiGeneration,
+          resourceLabel: 'Geração assistida',
+        );
+    if (decision.allowed) {
+      return true;
+    }
+
+    showBillingUpgradeModal(context, ref, decision: decision);
+    return false;
+  }
+
   Future<void> _generateFlashcardsFromNote(
     BuildContext context,
     StudyNoteEntity note,
     NoteContentDocument document,
   ) async {
+    if (!_ensureAiGenerationAccess(context)) return;
     final uuid = const Uuid();
     final generated = NoteAiGenerator.buildFlashcards(
       note: note,
@@ -71,6 +94,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     StudyNoteEntity note,
     NoteContentDocument document,
   ) async {
+    if (!_ensureAiGenerationAccess(context)) return;
     final uuid = const Uuid();
     final generated = NoteAiGenerator.buildMindMap(
       note: note,
@@ -98,6 +122,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     StudyNoteEntity note,
     NoteContentDocument document,
   ) async {
+    if (!_ensureAiGenerationAccess(context)) return;
     final uuid = const Uuid();
     final generated = NoteAiGenerator.buildTasks(
       note: note,
@@ -130,6 +155,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     StudyNoteEntity note,
     NoteContentDocument document,
   ) async {
+    if (!_ensureAiGenerationAccess(context)) return;
     final uuid = const Uuid();
     final generated = NoteAiGenerator.buildReviewCycle(
       note: note,
@@ -811,12 +837,11 @@ class _StatChip extends StatelessWidget {
       ),
       child: Text(
         '$label: $value',
-        style: (dense
-                ? context.textTheme.labelMedium
-                : context.textTheme.labelLarge)
-            ?.copyWith(
-          fontWeight: FontWeight.w700,
-        ),
+        style:
+            (dense
+                    ? context.textTheme.labelMedium
+                    : context.textTheme.labelLarge)
+                ?.copyWith(fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -1216,14 +1241,14 @@ class _NotebookPaperPainter extends CustomPainter {
 }
 
 Color _folderAccent(int index, ColorScheme colorScheme) {
-    const palette = <Color>[
-      Color(0xFF005F73),
-      Color(0xFF2EC5FF),
-      Color(0xFF35D39A),
-      Color(0xFFFFC857),
-      Color(0xFF0A3F4A),
-      Color(0xFF69D8FF),
-    ];
+  const palette = <Color>[
+    Color(0xFF005F73),
+    Color(0xFF2EC5FF),
+    Color(0xFF35D39A),
+    Color(0xFFFFC857),
+    Color(0xFF0A3F4A),
+    Color(0xFF69D8FF),
+  ];
   return palette[index % palette.length];
 }
 
@@ -1440,19 +1465,30 @@ Future<void> _showNoteDialog(
                   );
 
                   final now = DateTime.now().toUtc();
-                  await ref
-                      .read(noteActionsProvider)
-                      .save(
-                        StudyNoteEntity(
-                          id: note?.id ?? uuid.v4(),
-                          userId: userId,
-                          folderName: folder,
-                          title: title,
-                          content: encodedContent,
-                          createdAt: note?.createdAt ?? now,
-                          updatedAt: now,
-                        ),
+                  try {
+                    await ref
+                        .read(noteActionsProvider)
+                        .save(
+                          StudyNoteEntity(
+                            id: note?.id ?? uuid.v4(),
+                            userId: userId,
+                            folderName: folder,
+                            title: title,
+                            content: encodedContent,
+                            createdAt: note?.createdAt ?? now,
+                            updatedAt: now,
+                          ),
+                        );
+                  } on BillingAccessException catch (error) {
+                    if (dialogContext.mounted) {
+                      showBillingUpgradeModal(
+                        dialogContext,
+                        ref,
+                        decision: error.decision,
                       );
+                    }
+                    return;
+                  }
 
                   if (dialogContext.mounted) {
                     Navigator.of(dialogContext).pop();

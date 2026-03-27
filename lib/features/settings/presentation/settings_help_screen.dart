@@ -42,7 +42,9 @@ class SettingsHelpScreen extends ConsumerWidget {
                 Text(
                   'Atalhos úteis para restaurar a experiência do app.',
                   style: context.textTheme.bodySmall?.copyWith(
-                    color: context.colorScheme.onSurface.withValues(alpha: 0.68),
+                    color: context.colorScheme.onSurface.withValues(
+                      alpha: 0.68,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -50,7 +52,8 @@ class SettingsHelpScreen extends ConsumerWidget {
                   SettingsActionTile(
                     icon: Icons.lightbulb_outline_rounded,
                     title: 'Reexibir tutoriais',
-                    subtitle: 'Mostra novamente os guias contextuais das telas.',
+                    subtitle:
+                        'Mostra novamente os guias contextuais das telas.',
                     onTap: () async {
                       await ref.read(tutorialServiceProvider).resetTutorials();
                       if (context.mounted) {
@@ -95,7 +98,9 @@ class SettingsHelpScreen extends ConsumerWidget {
                 Text(
                   'Respostas rápidas para os pontos mais comuns do fluxo.',
                   style: context.textTheme.bodySmall?.copyWith(
-                    color: context.colorScheme.onSurface.withValues(alpha: 0.68),
+                    color: context.colorScheme.onSurface.withValues(
+                      alpha: 0.68,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -134,7 +139,9 @@ class SettingsHelpScreen extends ConsumerWidget {
                 Text(
                   'O suporte dedicado entra em uma próxima build. Por enquanto, use este centro para manutenção local.',
                   style: context.textTheme.bodySmall?.copyWith(
-                    color: context.colorScheme.onSurface.withValues(alpha: 0.68),
+                    color: context.colorScheme.onSurface.withValues(
+                      alpha: 0.68,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),

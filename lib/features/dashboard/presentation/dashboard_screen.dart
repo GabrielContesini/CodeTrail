@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/utils/date_time_utils.dart';
+import '../../../domain/entities/billing_entities.dart';
 import '../../../domain/entities/app_entities.dart';
 import '../../../shared/models/app_enums.dart';
 import '../../../shared/models/app_view_models.dart';
@@ -14,6 +15,8 @@ import '../../../shared/widgets/async_value_view.dart';
 import '../../../shared/widgets/page_frame.dart';
 import '../../../shared/widgets/sync_status_card.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../billing/application/billing_controller.dart';
+import '../../billing/presentation/widgets/billing_trial_banner.dart';
 import '../../dashboard/application/dashboard_controller.dart';
 import '../../projects/application/projects_controller.dart';
 import '../../reviews/application/reviews_controller.dart';
@@ -33,6 +36,7 @@ class DashboardScreen extends ConsumerWidget {
     final reviewsAsync = ref.watch(reviewsProvider);
     final projectsAsync = ref.watch(projectsProvider);
     final userId = ref.watch(currentUserIdProvider);
+    final billingSnapshot = ref.watch(currentBillingSnapshotProvider);
 
     return PageFrame(
       title: 'Dashboard',
@@ -98,9 +102,7 @@ class DashboardScreen extends ConsumerWidget {
                   else
                     Column(
                       children: [
-                        AnimatedReveal(
-                          child: _HeroStudyCard(summary: summary),
-                        ),
+                        AnimatedReveal(child: _HeroStudyCard(summary: summary)),
                         const SizedBox(height: 14),
                         AnimatedReveal(
                           delay: const Duration(milliseconds: 70),
@@ -116,6 +118,20 @@ class DashboardScreen extends ConsumerWidget {
                       title: 'Sincronizacao',
                       subtitle:
                           'O app salva localmente primeiro e envia para o Supabase quando a conexao permite.',
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  AnimatedReveal(
+                    delay: const Duration(milliseconds: 125),
+                    child: BillingTrialBanner(
+                      snapshot: billingSnapshot,
+                      onPrimaryAction: () =>
+                          context.go(AppRoutes.settingsBilling),
+                      primaryLabel:
+                          billingSnapshot.currentPlanCode ==
+                              BillingPlanCode.free
+                          ? 'Fazer upgrade'
+                          : 'Gerenciar plano',
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -312,8 +328,10 @@ class DashboardScreen extends ConsumerWidget {
                             emptyLabel:
                                 'Sem tarefas pendentes. Crie a próxima ação para manter ritmo.',
                             asyncValue: tasksAsync,
-                            builder: (tasks) =>
-                                tasks.take(5).map((task) => task.title).toList(),
+                            builder: (tasks) => tasks
+                                .take(5)
+                                .map((task) => task.title)
+                                .toList(),
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -523,11 +541,8 @@ class _TodayFocusCard extends StatelessWidget {
                       const SizedBox(width: 12),
                       Text(
                         item.$2,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
                       ),
                     ],
                   ),
@@ -558,10 +573,7 @@ class _DashboardSectionTitle extends StatelessWidget {
 }
 
 class _WeeklyTargetCard extends StatelessWidget {
-  const _WeeklyTargetCard({
-    required this.summary,
-    required this.goalAsync,
-  });
+  const _WeeklyTargetCard({required this.summary, required this.goalAsync});
 
   final DashboardSummary summary;
   final AsyncValue<UserGoalEntity?> goalAsync;
@@ -601,7 +613,9 @@ class _WeeklyTargetCard extends StatelessWidget {
                           ),
                         ),
                         FilledButton.tonalIcon(
-                          onPressed: userId == null ? null : () => openEditor(null),
+                          onPressed: userId == null
+                              ? null
+                              : () => openEditor(null),
                           icon: const Icon(Icons.edit_calendar_outlined),
                           label: const Text('Definir agora'),
                         ),
@@ -632,14 +646,15 @@ class _WeeklyTargetCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           'Meta semanal',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w800),
                         ),
                       ),
                       IconButton(
                         tooltip: 'Editar meta semanal',
-                        onPressed: userId == null ? null : () => openEditor(goal),
+                        onPressed: userId == null
+                            ? null
+                            : () => openEditor(goal),
                         icon: const Icon(Icons.edit_outlined),
                       ),
                       Container(
@@ -655,9 +670,8 @@ class _WeeklyTargetCard extends StatelessWidget {
                         ),
                         child: Text(
                           '${goal.hoursPerDay}h x ${goal.daysPerWeek} dias',
-                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: Theme.of(context).textTheme.labelLarge
+                              ?.copyWith(fontWeight: FontWeight.w700),
                         ),
                       ),
                     ],
@@ -743,7 +757,8 @@ Future<void> _showWeeklyTargetSheet({
             final nextGoal = UserGoalEntity(
               id: goal?.id ?? userId,
               userId: userId,
-              primaryGoal: goal?.primaryGoal ?? 'Construir consistencia semanal',
+              primaryGoal:
+                  goal?.primaryGoal ?? 'Construir consistencia semanal',
               desiredArea: goal?.desiredArea ?? 'Tecnologia',
               focusType: focusType,
               hoursPerDay: hoursPerDay,
@@ -933,10 +948,7 @@ class _GoalStepperField extends StatelessWidget {
 }
 
 class _DashboardPill extends StatelessWidget {
-  const _DashboardPill({
-    required this.label,
-    required this.value,
-  });
+  const _DashboardPill({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -952,9 +964,9 @@ class _DashboardPill extends StatelessWidget {
       ),
       child: Text(
         '$label: $value',
-        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-          fontWeight: FontWeight.w700,
-        ),
+        style: Theme.of(
+          context,
+        ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -1082,9 +1094,9 @@ class _MetricCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
               ],
             ),

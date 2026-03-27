@@ -67,7 +67,9 @@ class TrackDetailsScreen extends ConsumerWidget {
                         itemBuilder: (context, index) {
                           final skill = track.skills[index];
                           final progress =
-                              track.progressBySkill[skill.id]?.progressPercent ??
+                              track
+                                  .progressBySkill[skill.id]
+                                  ?.progressPercent ??
                               0;
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,10 +144,7 @@ class TrackDetailsScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(child: skillsCard),
-                  SizedBox(
-                    width: compact ? 0 : 16,
-                    height: compact ? 16 : 0,
-                  ),
+                  SizedBox(width: compact ? 0 : 16, height: compact ? 16 : 0),
                   Expanded(child: modulesCard),
                 ],
               );

@@ -24,9 +24,13 @@ class GradientScaffold extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.96),
+                Theme.of(
+                  context,
+                ).scaffoldBackgroundColor.withValues(alpha: 0.96),
                 scheme.surface.withValues(alpha: 0.90),
-                Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.98),
+                Theme.of(
+                  context,
+                ).scaffoldBackgroundColor.withValues(alpha: 0.98),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,

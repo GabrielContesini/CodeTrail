@@ -31,10 +31,16 @@ class StudyRepositoryImpl implements StudyRepository {
 
   @override
   Future<void> ensureSeededCatalog() async {
-    final existing = await _database.select(_database.studyTracksTable).get();
-    if (existing.isNotEmpty) return;
-
     final seed = _seedService.catalog();
+    final existing = await _database.select(_database.studyTracksTable).get();
+    final existingIds = existing.map((track) => track.id).toSet();
+    final allSeedTracksPresent = seed.tracks.every(
+      (track) => existingIds.contains(track.id),
+    );
+    if (existing.isNotEmpty && allSeedTracksPresent) {
+      return;
+    }
+
     final now = DateTime.now().toUtc();
 
     for (final track in seed.tracks) {
