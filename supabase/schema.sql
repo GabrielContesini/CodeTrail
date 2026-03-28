@@ -227,6 +227,7 @@ create table if not exists public.profiles (
   current_level text not null default 'beginner'
     check (current_level in ('beginner', 'junior', 'mid_level', 'senior')),
   onboarding_completed boolean not null default false,
+  welcome_email_sent_at timestamptz,
   selected_track_id text references public.study_tracks(id) on delete set null,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now())
